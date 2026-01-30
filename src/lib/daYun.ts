@@ -52,11 +52,20 @@ export function calcDaYun(
   const direction = male ? 1 : -1
   const daYunList: DaYunDetail[] = []
 
+  // 传统八字中，通常从6岁开始起运，每10年一步
+  const baseStartAge = 6
+
   for (let i = 0; i < 6; i++) {
-    const startAge = i * 10
+    const startAge = baseStartAge + i * 10
     const offset = direction * i
+    
+    // 大运天干：从日主开始，顺逆推
     const stemIndex = (HEAVENLY_STEMS.indexOf(dayStem) + offset) % 10
-    const branchIndex = (startYear - 4 + offset * 10) % 12
+    
+    // 大运地支：根据出生年份地支顺逆推
+    const birthYearBranchIndex = (startYear - 4) % 12
+    const branchIndex = (birthYearBranchIndex + direction * i * 2) % 12
+    
     const pillar = HEAVENLY_STEMS[(stemIndex + 10) % 10] + EARTHLY_BRANCHES[(branchIndex + 12) % 12]
     const tenGod = { stem: pillar[0], relation: calcTenGod(dayStem, pillar[0]) }
 

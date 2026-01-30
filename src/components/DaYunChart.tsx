@@ -24,7 +24,7 @@ export default function DaYunChart({ daYunList, liuNianList }: Props) {
   const daYunData = daYunList.map((dy, idx) => ({
     name: `大运${idx + 1}`,
     startAge: dy.startAge,
-    pillars: dy.pillar
+    pillar: dy.pillar
   }))
 
   // 流年折线图（十神关系数量）
@@ -46,9 +46,17 @@ export default function DaYunChart({ daYunList, liuNianList }: Props) {
           <BarChart data={daYunData}>
             <XAxis dataKey="name" />
             <YAxis />
-            <Tooltip formatter={(value) => value} />
+            <Tooltip 
+              formatter={(value, name, props) => {
+                if (name === 'startAge') return [`${value}岁`, '起始年龄']
+                if (name === 'pillar') return [value, '大运柱']
+                return [value, name]
+              }}
+              labelFormatter={(label) => `${label}`}
+            />
             <Legend />
-            <Bar dataKey="startAge" fill="#8884d8" />
+            <Bar dataKey="startAge" fill="#8884d8" name="起始年龄" />
+            <Bar dataKey="pillar" fill="#82ca9d" name="大运柱" />
           </BarChart>
         </ResponsiveContainer>
       </div>
