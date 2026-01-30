@@ -83,7 +83,61 @@ export default function ResultPage({ searchParams }: ResultPageProps) {
 
         {/* 可视化图表 */}
         <BaziChart result={result} tenGods={tenGods} />
+        {/* 五行分布雷达图解读 */}
+        <section className="bg-gray-50 p-4 rounded-lg">
+          <h2 className="font-semibold mb-3">五行分布雷达图解读</h2>
+          <div className="space-y-2">
+            <div><strong>五行强弱判断：</strong>靠近外圈的元素表示能量旺盛，靠近中心的元素表示能量不足。</div>
+            <div><strong>五行平衡分析：</strong>元素分布均匀表示命运平稳；元素强弱不均表示命运有明显倾向性。</div>
+            <div><strong>相生关系：</strong>木生火→火生土→土生金→金生水→水生木，相生链条完整表示能量流通顺畅。</div>
+            <div><strong>相克关系：</strong>木克土→土克水→水克火→火克金→金克木，相克关系需要平衡。</div>
+            <div><strong>命运指导：</strong>强木者创造力强，强火者热情活力，强土者踏实稳重，强金者果断坚毅，强水者智慧灵活。</div>
+          </div>
+        </section>
+
+        {/* 十神分布图解读 */}
+        <section className="bg-gray-50 p-4 rounded-lg">
+          <h2 className="font-semibold mb-3">十神分布图解读</h2>
+          <div className="space-y-2">
+            <div><strong>十神含义：</strong>十神是八字命理中的重要概念，代表日主与其他天干地支的关系，包括比肩、劫财、食神、伤官、偏财、正财、七杀、正官、偏印、正印。</div>
+            <div><strong>分布分析：</strong>图表显示各十神的出现频次，频次高的十神对命运影响较大。</div>
+            <div><strong>比肩/劫财：</strong>代表兄弟姐妹、朋友、竞争对手，过多则可能竞争压力大，过少则可能缺乏助力。</div>
+            <div><strong>食神/伤官：</strong>代表才华、子女、表达方式，过多则可能恃才傲物，过少则可能缺乏创造力。</div>
+            <div><strong>偏财/正财：</strong>代表财富、配偶，过多则可能物质欲望强，过少则可能财运较弱。</div>
+            <div><strong>七杀/正官：</strong>代表事业、权力、压力，过多则可能压力过大，过少则可能缺乏权威。</div>
+            <div><strong>偏印/正印：</strong>代表智慧、长辈、贵人，过多则可能思虑过重，过少则可能缺乏庇护。</div>
+            <div><strong>命运指导：</strong>根据十神分布，可了解个人的优势领域和需要注意的方面，针对性地调整行为和发展方向。</div>
+          </div>
+        </section>
+
         <DaYunChart daYunList={daYunList} liuNianList={liuNianList} />
+
+        {/* 大运与流年图表解读 */}
+        <section className="bg-gray-50 p-4 rounded-lg">
+          <h2 className="font-semibold mb-3">大运与流年图表解读</h2>
+          <div className="space-y-3">
+            <div>
+              <strong>大运概览图表：</strong>
+              <ul className="list-disc pl-5 mt-1 space-y-1">
+                <li>显示人生中每十年一变的大运周期</li>
+                <li>横轴为大运序号，纵轴为大运起始年龄</li>
+                <li>每个柱子代表一个大运周期，高度表示开始年龄</li>
+                <li>通过图表可直观了解何时进入新的大运，提前做好准备</li>
+                <li>大运交接期（一般为前后一年）运势可能有波动，需特别注意</li>
+              </ul>
+            </div>
+            <div>
+              <strong>流年十神趋势图表：</strong>
+              <ul className="list-disc pl-5 mt-1 space-y-1">
+                <li>显示从起始年龄到100岁的十神变化趋势</li>
+                <li>横轴为年龄，纵轴为十神类型</li>
+                <li>线条走势反映十神类型的变化，帮助预测不同年龄段的运势特点</li>
+                <li>十神类型的转变往往意味着生活重心和挑战的变化</li>
+                <li>结合大运和流年的十神变化，可更准确地把握人生机遇与挑战</li>
+              </ul>
+            </div>
+          </div>
+        </section>
 
         {/* 综合运势 */}
         <section className="space-y-2">
