@@ -26,7 +26,7 @@ export function calcLiuNianFull(
   const direction = male ? 1 : -1
   const liuNianList: LiuNianDetail[] = []
 
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 100; i++) {
     const year = startYear + direction * i
     const stemIndex = (HEAVENLY_STEMS.indexOf(dayStem) + direction * i) % 10
     const branchIndex = (year - 4) % 12

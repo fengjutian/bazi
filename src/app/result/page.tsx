@@ -1,5 +1,6 @@
 "use client"
 
+import { use } from 'react'
 import { calcBazi } from "@/lib/bazi"
 import { explainBazi } from "@/lib/explain"
 import { calcAllTenGods } from "@/lib/tenGod"
@@ -10,16 +11,16 @@ import DaYunChart from "@/components/DaYunChart"
 import ExportPdfButton from "@/components/ExportPdfButton"
 
 interface ResultPageProps {
-  searchParams: {
+  searchParams: Promise<{
     year?: string
     month?: string
     day?: string
     hour?: string
-  }
+  }>
 }
 
 export default function ResultPage({ searchParams }: ResultPageProps) {
-  const { year, month, day, hour } = searchParams
+  const { year, month, day, hour } = use(searchParams)
 
   // 1️⃣ 参数解析
   const birthYear = Number(year) || 1990
