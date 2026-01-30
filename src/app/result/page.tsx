@@ -3,7 +3,7 @@
 import { use } from 'react'
 import { calcBazi } from "@/lib/bazi"
 import { explainBazi } from "@/lib/explain"
-import { calcAllTenGods } from "@/lib/tenGod"
+import { calcAllTenGods, TEN_GOD_EXPLANATIONS } from "@/lib/tenGod"
 import { calcDaYun, calcLiuNianFull } from "@/lib/daYun"
 import { generateFortune } from "@/lib/fortune"
 import BaziChart from "@/components/BaziChart"
@@ -71,11 +71,14 @@ export default function ResultPage({ searchParams }: ResultPageProps) {
         {/* 十神分析 */}
         <section>
           <h2 className="font-semibold mb-2">十神明细</h2>
-          <ul className="list-disc pl-5">
+          <div className="space-y-4">
             {tenGods.map((tg, i) => (
-              <li key={i}>干 {tg.stem} → {tg.relation}</li>
+              <div key={i} className="p-3 border rounded">
+                <div><strong>干 {tg.stem} → {tg.relation}</strong></div>
+                <div className="text-sm text-gray-700 mt-1">{TEN_GOD_EXPLANATIONS[tg.relation]}</div>
+              </div>
             ))}
-          </ul>
+          </div>
         </section>
 
         {/* 可视化图表 */}
