@@ -1,6 +1,5 @@
 "use client"
 
-import { DaYun, LiuNian } from "@/lib/daYun"
 import {
   ResponsiveContainer,
   BarChart,
@@ -13,17 +12,19 @@ import {
   Line
 } from "recharts"
 
+import { DaYunDetail, LiuNianDetail } from "@/lib/daYun"
+
 interface Props {
-  daYunList: DaYun[]
-  liuNianList: LiuNian[]
+  daYunList: DaYunDetail[]
+  liuNianList: LiuNianDetail[]
 }
 
 export default function DaYunChart({ daYunList, liuNianList }: Props) {
   // 大运柱状图数据
   const daYunData = daYunList.map((dy, idx) => ({
-    name: dy.period,
+    name: `大运${idx + 1}`,
     startAge: dy.startAge,
-    pillars: dy.pillars.join(' ')
+    pillars: dy.pillar
   }))
 
   // 流年折线图（十神关系数量）

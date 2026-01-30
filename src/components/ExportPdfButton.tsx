@@ -12,22 +12,30 @@ export default function ExportPdfButton({ targetId }: Props) {
     const element = document.getElementById(targetId)
     if (!element) return
 
-    // 将 DOM 转成 canvas
-    const canvas = await html2canvas(element, { scale: 2 })
-    const imgData = canvas.toDataURL("image/png")
+    const pdf = new jsPDF({ unit: "pt", format: "a4" })
+    const pageHeight = pdf.internal.pageSize.getHeight()
 
-    // 创建 PDF
-    const pdf = new jsPDF({
-      orientation: "portrait",
-      unit: "pt",
-      format: "a4"
-    })
+    // 每页单独截图，保证分页
+    const children = Array.from(element.children) as HTMLElement[]
+    let offsetY = 0
 
-    const pdfWidth = pdf.internal.pageSize.getWidth()
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width
+    for (let i = 0; i < children.length; i++) {
+      const child = children[i]
 
-    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight)
-    pdf.save("bazi_report.pdf")
+      const canvas = await html2canvas(child, { scale: 2 })
+      const imgData = canvas.toDataURL("image/png")
+      const imgHeight = (canvas.height * pdf.internal.pageSize.getWidth()) / canvas.width
+
+      if (offsetY + imgHeight > pageHeight) {
+        pdf.addPage()
+        offsetY = 0
+      }
+
+      pdf.addImage(imgData, "PNG", 0, offsetY, pdf.internal.pageSize.getWidth(), imgHeight)
+      offsetY += imgHeight
+    }
+
+    pdf.save("bazi_full_report.pdf")
   }
 
   return (
@@ -35,7 +43,7 @@ export default function ExportPdfButton({ targetId }: Props) {
       onClick={handleExport}
       className="bg-black text-white px-4 py-2 rounded hover:opacity-90"
     >
-      下载 PDF 报告
+      下载完整 PDF 命盘报告
     </button>
   )
 }
