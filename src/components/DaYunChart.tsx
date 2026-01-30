@@ -63,7 +63,11 @@ export default function DaYunChart({ daYunList, liuNianList }: Props) {
         <h2 className="text-lg font-semibold mb-2">流年十神趋势</h2>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={liuNianData}>
-            <XAxis dataKey="age" label={{ value: '年龄', position: 'insideBottomRight', offset: -10 }} />
+            <XAxis 
+              dataKey="age" 
+              label={{ value: '年龄', position: 'insideBottomRight', offset: -10 }}
+              tick={{ fontSize: 12 }}
+            />
             <YAxis 
               domain={[0, 11]} 
               tickFormatter={(value) => {
@@ -71,17 +75,31 @@ export default function DaYunChart({ daYunList, liuNianList }: Props) {
                 return tenGods[value] || ''
               }}
               label={{ value: '十神', angle: -90, position: 'insideLeft' }}
+              tick={{ fontSize: 11 }}
             />
             <Tooltip 
               formatter={(value, name, props) => {
-                if (name === 'value') return [props.payload.relation, '十神']
-                if (name === 'year') return [value, '年份']
+                if (name === 'value' && props.payload) {
+                  return [props.payload.relation, '十神']
+                }
+                if (name === 'year' && props.payload) return [props.payload.year, '年份']
+                if (name === 'pillar' && props.payload) return [props.payload.pillar, '流年柱']
                 return [value, name]
               }}
               labelFormatter={(label) => `年龄：${label}岁`}
+              contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc' }}
+              cursor={{ pointer: 'pointer' }}
             />
             <Legend />
-            <Line type="monotone" dataKey="value" name="十神变化" stroke="#82ca9d" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+            <Line 
+              type="monotone" 
+              dataKey="value" 
+              name="十神变化" 
+              stroke="#82ca9d" 
+              strokeWidth={2} 
+              dot={{ r: 4, fill: '#82ca9d', strokeWidth: 2 }} 
+              activeDot={{ r: 6, fill: '#82ca9d', stroke: '#fff', strokeWidth: 2 }} 
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>

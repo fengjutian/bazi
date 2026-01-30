@@ -28,8 +28,10 @@ export function calcLiuNianFull(
 
   for (let i = 0; i < 100; i++) {
     const year = startYear + direction * i
-    const stemIndex = (HEAVENLY_STEMS.indexOf(dayStem) + direction * i) % 10
-    const branchIndex = (year - 4) % 12
+    // 正确的流年天干地支计算：与年柱计算逻辑一致
+    const index = (year - 4) % 60
+    const stemIndex = index % 10
+    const branchIndex = index % 12
     const pillar = HEAVENLY_STEMS[(stemIndex + 10) % 10] + EARTHLY_BRANCHES[(branchIndex + 12) % 12]
     const tenGod = { stem: pillar[0], relation: calcTenGod(dayStem, pillar[0]) }
 
