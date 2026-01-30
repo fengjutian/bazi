@@ -28,13 +28,14 @@ export default function DaYunChart({ daYunList, liuNianList }: Props) {
   }))
 
   // 流年十神趋势数据
-  const liuNianData = liuNianList.map(ln => ({
-    age: ln.age,
-    year: ln.year,
-    relation: ln.tenGod.relation,
-    // 为每个十神分配一个数值，用于在图表上显示
-    value: Object.keys({ 比肩: 1, 劫财: 2, 食神: 3, 伤官: 4, 偏财: 5, 正财: 6, 七杀: 7, 正官: 8, 偏印: 9, 正印: 10 }).indexOf(ln.tenGod.relation) + 1
-  }))
+// 流年十神趋势数据
+const liuNianData = liuNianList.map(ln => ({
+  age: ln.age,
+  year: ln.year,
+  relation: ln.tenGod.relation,
+  // 为每个十神分配一个数值，用于在图表上显示
+  value: Object.keys({ 比肩: 1, 劫财: 2, 食神: 3, 伤官: 4, 偏财: 5, 正财: 6, 七杀: 7, 正官: 8, 偏印: 9, 正印: 10 }).indexOf(ln.tenGod.relation) + 1
+}))
 
   return (
     <div className="space-y-8">
