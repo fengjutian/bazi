@@ -79,11 +79,12 @@ export default function DaYunChart({ daYunList, liuNianList }: Props) {
             />
             <Tooltip 
               formatter={(value, name, props) => {
-                if (name === 'value' && props.payload) {
-                  return [props.payload.relation, '十神']
+                if (name === 'value') {
+                  const tenGodName = props.payload?.relation || ''
+                  return [tenGodName, '十神']
                 }
-                if (name === 'year' && props.payload) return [props.payload.year, '年份']
-                if (name === 'pillar' && props.payload) return [props.payload.pillar, '流年柱']
+                if (name === 'year') return [props.payload?.year || value, '年份']
+                if (name === 'pillar') return [props.payload?.pillar || value, '流年柱']
                 return [value, name]
               }}
               labelFormatter={(label) => `年龄：${label}岁`}
