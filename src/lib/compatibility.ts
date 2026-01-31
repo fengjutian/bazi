@@ -576,17 +576,8 @@ function analyzeDayMasterCompatibility(
   }
   
   // 判断日主强弱
-  const maleElements = calculateCompleteElements(
-    Object.values(maleBazi.pillars),
-    maleBazi.dayMaster
-  )
-  const femaleElements = calculateCompleteElements(
-    Object.values(femaleBazi.pillars),
-    femaleBazi.dayMaster
-  )
-  
-  const maleStrength = judgeDayMasterStrength(maleBazi.dayMaster, maleElements)
-  const femaleStrength = judgeDayMasterStrength(femaleBazi.dayMaster, femaleElements)
+  const maleStrength = judgeDayMasterStrength(maleBazi.dayMaster, Object.values(maleBazi.pillars))
+  const femaleStrength = judgeDayMasterStrength(femaleBazi.dayMaster, Object.values(femaleBazi.pillars))
   
   // 强弱搭配分析
   if (maleStrength === 'strong' && femaleStrength === 'weak') {

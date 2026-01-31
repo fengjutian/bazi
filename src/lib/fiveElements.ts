@@ -193,8 +193,9 @@ function analyzeOvercomeChains(weights: Record<string, number>): string[] {
 // 判断日主强弱
 export function judgeDayMasterStrength(
   dayMaster: HeavenlyStem, 
-  elements: FiveElementsResult
+  pillars: string[]
 ): 'strong' | 'medium' | 'weak' {
+  const elements = calculateCompleteElements(pillars, dayMaster)
   const dayMasterElement = STEM_ELEMENT[dayMaster]
   return elements.strengths[dayMasterElement] || 'medium'
 }
