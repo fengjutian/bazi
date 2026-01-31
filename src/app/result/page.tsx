@@ -1,6 +1,7 @@
 "use client"
 
-import { use } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { calcBazi } from "@/lib/bazi"
 import { explainBazi } from "@/lib/explain"
 import { calcAllTenGods, TEN_GOD_EXPLANATIONS } from "@/lib/tenGod"
@@ -11,51 +12,87 @@ import BaziChart from "@/components/BaziChart"
 import DaYunChart from "@/components/DaYunChart"
 import ExportPdfButton from "@/components/ExportPdfButton"
 
-interface ResultPageProps {
-  searchParams: Promise<{
-    year?: string
-    month?: string
-    day?: string
-    hour?: string
-  }>
-}
+export default function ResultPage() {
+  const searchParams = useSearchParams()
+  const [result, setResult] = useState<ReturnType<typeof calcBazi> | null>(null)
+  const [tenGods, setTenGods] = useState<any[]>([])
+  const [daYunList, setDaYunList] = useState<any[]>([])
+  const [keyLiuNianList, setKeyLiuNianList] = useState<any[]>([])
+  const [fortune, setFortune] = useState<any>(null)
+  const [dayMasterStrength, setDayMasterStrength] = useState<'strong' | 'medium' | 'weak'>('medium')
+  const [explanation, setExplanation] = useState<any>(null)
 
-export default function ResultPage({ searchParams }: ResultPageProps) {
-  const { year, month, day, hour } = use(searchParams)
+  useEffect(() => {
+    // 1️⃣ 参数解析
+    const year = searchParams.get('year')
+    const month = searchParams.get('month')
+    const day = searchParams.get('day')
+    const hour = searchParams.get('hour')
+    
+    const birthYear = Number(year) || 1990
+    const birthMonth = Number(month) || 1
+    const birthDay = Number(day) || 1
+    const birthHour = Number(hour) || 12
 
-  // 1️⃣ 参数解析
+    // 2️⃣ 八字计算
+    const baziResult = calcBazi(birthYear, birthMonth, birthDay, birthHour)
+    const baziTenGods = calcAllTenGods(baziResult.dayMaster, [
+      baziResult.pillars.year,
+      baziResult.pillars.month,
+      baziResult.pillars.day,
+      baziResult.pillars.hour
+    ])
+
+    // 3️⃣ 大运计算
+    const birthDate = new Date(birthYear, birthMonth - 1, birthDay, birthHour)
+    const baziDaYunList = calcDaYun(baziResult.dayMaster, birthDate, true)
+
+    // 4️⃣ 流年计算（只显示关键年份）
+    const liuNianList = calcLiuNianFull(baziResult.dayMaster, birthYear, baziDaYunList[0].startAge, true)
+    const baziKeyLiuNianList = liuNianList.filter(ln => [20, 25, 30, 35, 40, 45, 50, 60, 70, 80].includes(ln.age))
+
+    // 5️⃣ 综合运势
+    const baziFortune = generateFortune(baziResult.dayMaster, [
+      baziResult.pillars.year,
+      baziResult.pillars.month,
+      baziResult.pillars.day,
+      baziResult.pillars.hour
+    ])
+
+    // 6️⃣ 日主强弱分析
+    const baziDayMasterStrength = judgeDayMasterStrength(baziResult.dayMaster, Object.values(baziResult.pillars))
+
+    // 7️⃣ 设置状态
+    setResult(baziResult)
+    setTenGods(baziTenGods)
+    setDaYunList(baziDaYunList)
+    setKeyLiuNianList(baziKeyLiuNianList)
+    setFortune(baziFortune)
+    setDayMasterStrength(baziDayMasterStrength)
+    setExplanation(explainBazi(baziResult.dayMaster))
+  }, [searchParams])
+
+  // 从URL参数中获取出生时间信息
+  const year = searchParams.get('year')
+  const month = searchParams.get('month')
+  const day = searchParams.get('day')
+  const hour = searchParams.get('hour')
+  
   const birthYear = Number(year) || 1990
   const birthMonth = Number(month) || 1
   const birthDay = Number(day) || 1
   const birthHour = Number(hour) || 12
 
-  // 2️⃣ 八字计算
-  const result = calcBazi(birthYear, birthMonth, birthDay, birthHour)
-  const tenGods = calcAllTenGods(result.dayMaster, [
-    result.pillars.year,
-    result.pillars.month,
-    result.pillars.day,
-    result.pillars.hour
-  ])
-
-  // 3️⃣ 大运计算
-  const birthDate = new Date(birthYear, birthMonth - 1, birthDay, birthHour)
-  const daYunList = calcDaYun(result.dayMaster, birthDate, true)
-
-  // 4️⃣ 流年计算（只显示关键年份）
-  const liuNianList = calcLiuNianFull(result.dayMaster, birthYear, daYunList[0].startAge, true)
-  const keyLiuNianList = liuNianList.filter(ln => [20, 25, 30, 35, 40, 45, 50, 60, 70, 80].includes(ln.age))
-
-  // 5️⃣ 综合运势
-  const fortune = generateFortune(result.dayMaster, [
-    result.pillars.year,
-    result.pillars.month,
-    result.pillars.day,
-    result.pillars.hour
-  ])
-
-  // 6️⃣ 日主强弱分析
-  const dayMasterStrength = judgeDayMasterStrength(result.dayMaster, Object.values(result.pillars))
+  if (!result) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">正在生成八字分析报告...</p>
+        </div>
+      </div>
+    )
+  }
 
   // 7️⃣ 关键指标计算
   const fiveElementsBalance = Object.values(result.fiveElements).reduce((sum, val) => sum + val, 0) / 5
@@ -193,7 +230,7 @@ export default function ResultPage({ searchParams }: ResultPageProps) {
                 <div key={i} className="bg-gray-50 p-3 rounded-lg">
                   <div className="font-medium text-gray-800">{tg.stem} → {tg.relation}</div>
                   <div className="text-sm text-gray-600 mt-1 line-clamp-2">
-                    {TEN_GOD_EXPLANATIONS[tg.relation].substring(0, 80)}...
+                    {TEN_GOD_EXPLANATIONS[tg.relation as keyof typeof TEN_GOD_EXPLANATIONS]?.substring(0, 80) || '暂无详细说明'}...
                   </div>
                 </div>
               ))}
@@ -214,7 +251,7 @@ export default function ResultPage({ searchParams }: ResultPageProps) {
           </h2>
           <div className="space-y-8">
             <BaziChart result={result} tenGods={tenGods} />
-            <DaYunChart daYunList={daYunList} liuNianList={liuNianList} />
+            <DaYunChart daYunList={daYunList} liuNianList={keyLiuNianList} />
           </div>
         </section>
 
@@ -296,7 +333,7 @@ export default function ResultPage({ searchParams }: ResultPageProps) {
                 {tenGods.map((tg, i) => (
                   <div key={i} className="border-l-4 border-blue-500 pl-3 py-1">
                     <div className="font-medium">{tg.stem} → {tg.relation}</div>
-                    <div className="text-sm text-gray-600 mt-1">{TEN_GOD_EXPLANATIONS[tg.relation]}</div>
+                    <div className="text-sm text-gray-600 mt-1">{TEN_GOD_EXPLANATIONS[tg.relation as keyof typeof TEN_GOD_EXPLANATIONS] || '暂无详细说明'}</div>
                   </div>
                 ))}
               </div>

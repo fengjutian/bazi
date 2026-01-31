@@ -1,45 +1,63 @@
 // src/app/compatibility/page.tsx
 "use client"
 
-import { use } from 'react'
+import { useEffect, useState } from 'react'
 import { calcBazi } from "@/lib/bazi"
 import { analyzeCompatibility, CompatibilityResult } from "@/lib/compatibility"
+import { useSearchParams } from 'next/navigation'
 
-interface CompatibilityPageProps {
-  searchParams: Promise<{
-    maleYear?: string
-    maleMonth?: string
-    maleDay?: string
-    maleHour?: string
-    femaleYear?: string
-    femaleMonth?: string
-    femaleDay?: string
-    femaleHour?: string
-  }>
-}
+export default function CompatibilityPage() {
+  const searchParams = useSearchParams()
+  const [result, setResult] = useState<CompatibilityResult | null>(null)
+  
+  useEffect(() => {
+    // 解析男方八字参数
+    const maleYear = Number(searchParams.get('maleYear')) || 1990
+    const maleMonth = Number(searchParams.get('maleMonth')) || 1
+    const maleDay = Number(searchParams.get('maleDay')) || 1
+    const maleHour = Number(searchParams.get('maleHour')) || 12
+    
+    // 解析女方八字参数
+    const femaleYear = Number(searchParams.get('femaleYear')) || 1990
+    const femaleMonth = Number(searchParams.get('femaleMonth')) || 1
+    const femaleDay = Number(searchParams.get('femaleDay')) || 1
+    const femaleHour = Number(searchParams.get('femaleHour')) || 12
+    
+    // 计算双方八字
+    const maleBazi = calcBazi(maleYear, maleMonth, maleDay, maleHour)
+    const femaleBazi = calcBazi(femaleYear, femaleMonth, femaleDay, femaleHour)
+    
+    // 分析八字相配度
+    const compatibilityResult = analyzeCompatibility(maleBazi, femaleBazi)
+    setResult(compatibilityResult)
+  }, [searchParams])
+  
+  if (!result) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">正在生成八字相配分析报告...</p>
+        </div>
+      </div>
+    )
+  }
 
-export default function CompatibilityPage({ searchParams }: CompatibilityPageProps) {
-  const params = use(searchParams)
+  // 从URL参数中获取出生时间信息
+  const maleYear = Number(searchParams.get('maleYear')) || 1990
+  const maleMonth = Number(searchParams.get('maleMonth')) || 1
+  const maleDay = Number(searchParams.get('maleDay')) || 1
+  const maleHour = Number(searchParams.get('maleHour')) || 12
   
-  // 解析男方八字参数
-  const maleYear = Number(params.maleYear) || 1990
-  const maleMonth = Number(params.maleMonth) || 1
-  const maleDay = Number(params.maleDay) || 1
-  const maleHour = Number(params.maleHour) || 12
-  
-  // 解析女方八字参数
-  const femaleYear = Number(params.femaleYear) || 1990
-  const femaleMonth = Number(params.femaleMonth) || 1
-  const femaleDay = Number(params.femaleDay) || 1
-  const femaleHour = Number(params.femaleHour) || 12
-  
-  // 计算双方八字
+  const femaleYear = Number(searchParams.get('femaleYear')) || 1990
+  const femaleMonth = Number(searchParams.get('femaleMonth')) || 1
+  const femaleDay = Number(searchParams.get('femaleDay')) || 1
+  const femaleHour = Number(searchParams.get('femaleHour')) || 12
+
+  // 计算双方八字（用于显示基本信息）
   const maleBazi = calcBazi(maleYear, maleMonth, maleDay, maleHour)
   const femaleBazi = calcBazi(femaleYear, femaleMonth, femaleDay, femaleHour)
-  
-  // 分析八字相配度
-  const result = analyzeCompatibility(maleBazi, femaleBazi)
-  
+
   return (
     <div className="p-8 max-w-4xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold text-center">男女八字相配分析</h1>

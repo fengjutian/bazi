@@ -1,0 +1,18 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/result"
+  to = "/result"
+  status = 200
+
+[[redirects]]
+  from = "/compatibility"
+  to = "/compatibility"
+  status = 200
