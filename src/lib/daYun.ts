@@ -79,7 +79,8 @@ export function calcLiuNianFull(
 
     // 五行统计
     const fiveElements: Record<string, number> = { 木:0, 火:0, 土:0, 金:0, 水:0 }
-    fiveElements[STEM_ELEMENT[pillar[0]]] = 1
+    const stem = pillar[0] as HeavenlyStem
+    fiveElements[STEM_ELEMENT[stem]] = 1
 
     liuNianList.push({ 
       age: startAge + i, 

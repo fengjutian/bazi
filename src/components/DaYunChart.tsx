@@ -103,7 +103,7 @@ export default function DaYunChart({ daYunList, liuNianList }: Props) {
               }}
               labelFormatter={(label) => `年龄：${label}岁`}
               contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc' }}
-              cursor={{ pointer: 'pointer' }}
+              cursor={{ stroke: '#ccc', strokeWidth: 1 }}
             />
             <Legend />
             <Line 
