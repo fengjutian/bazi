@@ -652,21 +652,97 @@ function analyzePillarMatch(pillar1: string, pillar2: string): number {
   const branch1 = pillar1[1]
   const branch2 = pillar2[1]
   
-  // 天干相同或相生加分
+  // 1. 天干相配分析
+  // 天干相同：加分
   if (stem1 === stem2) score += 10
   
-  // 地支三合、六合加分
-  const combinations = [
+  // 天干相生：加分（木生火、火生土、土生金、金生水、水生木）
+  const stemGenerations: Record<string, string> = {
+    '甲': '丙', '乙': '丁', // 木生火
+    '丙': '戊', '丁': '己', // 火生土
+    '戊': '庚', '己': '辛', // 土生金
+    '庚': '壬', '辛': '癸', // 金生水
+    '壬': '甲', '癸': '乙'  // 水生木
+  }
+  
+  if (stemGenerations[stem1] === stem2 || stemGenerations[stem2] === stem1) {
+    score += 8
+  }
+  
+  // 天干相合：加分（甲己合、乙庚合、丙辛合、丁壬合、戊癸合）
+  const stemCombinations = [
+    ['甲', '己'], ['乙', '庚'], ['丙', '辛'], ['丁', '壬'], ['戊', '癸']
+  ]
+  
+  stemCombinations.forEach(([s1, s2]) => {
+    if ((stem1 === s1 && stem2 === s2) || (stem1 === s2 && stem2 === s1)) {
+      score += 12
+    }
+  })
+  
+  // 2. 地支相配分析
+  // 地支六合：加分
+  const branchCombinations = [
     ['子', '丑'], ['寅', '亥'], ['卯', '戌'], ['辰', '酉'], ['巳', '申'], ['午', '未']
   ]
   
-  combinations.forEach(([b1, b2]) => {
+  branchCombinations.forEach(([b1, b2]) => {
     if ((branch1 === b1 && branch2 === b2) || (branch1 === b2 && branch2 === b1)) {
       score += 15
     }
   })
   
-  return score
+  // 地支三合：加分（申子辰、寅午戌、巳酉丑、亥卯未）
+  const branchTriplets = [
+    ['申', '子', '辰'], ['寅', '午', '戌'], ['巳', '酉', '丑'], ['亥', '卯', '未']
+  ]
+  
+  branchTriplets.forEach(triplet => {
+    if (triplet.includes(branch1) && triplet.includes(branch2) && branch1 !== branch2) {
+      score += 12
+    }
+  })
+  
+  // 地支相生：加分
+  const branchGenerations: Record<string, string[]> = {
+    '寅': ['午', '巳'], '卯': ['午', '巳'], // 木生火
+    '午': ['辰', '戌', '丑', '未'], '巳': ['辰', '戌', '丑', '未'], // 火生土
+    '辰': ['申', '酉'], '戌': ['申', '酉'], '丑': ['申', '酉'], '未': ['申', '酉'], // 土生金
+    '申': ['子', '亥'], '酉': ['子', '亥'], // 金生水
+    '子': ['寅', '卯'], '亥': ['寅', '卯']  // 水生木
+  }
+  
+  if (branchGenerations[branch1]?.includes(branch2) || branchGenerations[branch2]?.includes(branch1)) {
+    score += 6
+  }
+  
+  // 3. 基础匹配度：即使没有特殊关系，只要五行属性不冲突就加分
+  const STEM_ELEMENT = {
+    '甲': '木', '乙': '木', '丙': '火', '丁': '火', '戊': '土',
+    '己': '土', '庚': '金', '辛': '金', '壬': '水', '癸': '水'
+  }
+  
+  const BRANCH_ELEMENT = {
+    '寅': '木', '卯': '木', '午': '火', '巳': '火', '辰': '土', '戌': '土', '丑': '土', '未': '土',
+    '申': '金', '酉': '金', '子': '水', '亥': '水'
+  }
+  
+  const stemElement1 = STEM_ELEMENT[stem1 as keyof typeof STEM_ELEMENT]
+  const stemElement2 = STEM_ELEMENT[stem2 as keyof typeof STEM_ELEMENT]
+  const branchElement1 = BRANCH_ELEMENT[branch1 as keyof typeof BRANCH_ELEMENT]
+  const branchElement2 = BRANCH_ELEMENT[branch2 as keyof typeof BRANCH_ELEMENT]
+  
+  // 天干五行不冲突：加分
+  if (stemElement1 && stemElement2 && stemElement1 !== stemElement2) {
+    score += 3
+  }
+  
+  // 地支五行不冲突：加分
+  if (branchElement1 && branchElement2 && branchElement1 !== branchElement2) {
+    score += 3
+  }
+  
+  return Math.min(score, 25) // 单柱最高分25分
 }
 
 // 计算总体分数
