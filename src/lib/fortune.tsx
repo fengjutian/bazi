@@ -62,7 +62,8 @@ function countCompleteTenGods(dayMaster: string, pillars: string[]): Record<stri
 // 计算完整的五行数量（包含地支和藏干）
 function countCompleteElements(dayMaster: string, pillars: string[]): Record<string, number> {
   const count: Record<string, number> = { '木': 0, '火': 0, '土': 0, '金': 0, '水': 0 }
-  const dayMasterElement = STEM_ELEMENT[dayMaster[0]] || "木"
+  const dayMasterStem = dayMaster[0] as HeavenlyStem
+  const dayMasterElement = STEM_ELEMENT[dayMasterStem] || "木"
   
   // 日主权重为4
   count[dayMasterElement] += 4

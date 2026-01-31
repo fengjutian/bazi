@@ -28,7 +28,7 @@ export const ELEMENT_RELATIONS = {
     '土': '金',
     '金': '水',
     '水': '木'
-  },
+  } as Record<string, string>,
   
   // 相克：木→土→水→火→金→木
   overcome: {
@@ -37,7 +37,7 @@ export const ELEMENT_RELATIONS = {
     '水': '火', 
     '火': '金',
     '金': '木'
-  }
+  } as Record<string, string>
 }
 
 // 五行力量权重
