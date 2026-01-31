@@ -41,9 +41,9 @@ export default function BaziChart({ result, tenGods }: Props) {
 
   return (
     <div className="space-y-8">
-      <div className="w-full h-64">
+      <div className="w-full h-64 min-h-64">
         <h2 className="text-lg font-semibold mb-2">五行分布雷达图</h2>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <RadarChart data={radarData}>
             <PolarGrid />
             <PolarAngleAxis dataKey="element" />

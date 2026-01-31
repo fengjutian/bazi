@@ -51,9 +51,9 @@ export default function DaYunChart({ daYunList, liuNianList }: Props) {
 
   return (
     <div className="space-y-8">
-      <div className="w-full h-64">
+      <div className="w-full h-64 min-h-64">
         <h2 className="text-lg font-semibold mb-2">大运概览</h2>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <BarChart data={daYunData}>
             <XAxis dataKey="name" />
             <YAxis />
@@ -72,9 +72,9 @@ export default function DaYunChart({ daYunList, liuNianList }: Props) {
         </ResponsiveContainer>
       </div>
 
-      <div className="w-full h-64">
+      <div className="w-full h-64 min-h-64">
         <h2 className="text-lg font-semibold mb-2">流年十神趋势</h2>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <LineChart data={liuNianData}>
             <XAxis 
               dataKey="age" 

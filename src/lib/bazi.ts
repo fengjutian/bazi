@@ -93,7 +93,8 @@ function calcDayPillar(y: number, m: number, d: number): string {
     return '甲子' // 返回默认值
   }
   
-  const index = (jd + 49) % 60
+  // 使用整数计算，避免小数索引问题
+  const index = Math.floor((jd + 49) % 60)
   
   // 确保索引在有效范围内
   const stemIndex = ((index % 10) + 10) % 10
