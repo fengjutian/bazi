@@ -10,73 +10,74 @@ export interface Fortune {
   social?: string
 }
 
+// 计算十神数量
 function countTenGods(tenGods: TenGod[]): Record<string, number> {
   const count: Record<string, number> = {}
+  if (!tenGods || !Array.isArray(tenGods)) {
+    return count
+  }
+  
   tenGods.forEach(tg => {
-    count[tg.relation] = (count[tg.relation] || 0) + 1
+    if (tg && tg.relation) {
+      count[tg.relation] = (count[tg.relation] || 0) + 1
+    }
   })
   return count
 }
 
-function getElementStrengthRatio(tenGods: TenGod[], dayMaster: string): Record<string, number> {
+// 计算五行数量
+function countElements(tenGods: TenGod[], dayMaster: string): Record<string, number> {
   const count: Record<string, number> = { '木': 0, '火': 0, '土': 0, '金': 0, '水': 0 }
   const dayMasterElement = STEM_ELEMENT[dayMaster[0]] || "木"
+  
+  if (!tenGods || !Array.isArray(tenGods)) {
+    count[dayMasterElement] += 4
+    return count
+  }
   
   count[dayMasterElement] += 4
   
   tenGods.forEach(tg => {
-    const element = STEM_ELEMENT[tg.stem]
-    if (element) {
-      count[element]++
+    if (tg && tg.stem) {
+      const element = STEM_ELEMENT[tg.stem]
+      if (element) {
+        count[element]++
+      }
     }
   })
   
+  return count
+}
+
+// 判断五行强弱
+function getElementStrength(count: Record<string, number>, element: string): 'strong' | 'medium' | 'weak' {
   const total = Object.values(count).reduce((a, b) => a + b, 0)
-  const ratio: Record<string, number> = {}
-  Object.keys(count).forEach(key => {
-    ratio[key] = count[key] / total
-  })
+  if (total === 0) return 'weak'
   
-  return ratio
+  const ratio = count[element] / total
+  
+  if (ratio >= 0.3) return 'strong'
+  if (ratio >= 0.2) return 'medium'
+  return 'weak'
 }
 
-function analyzeStructure(count: Record<string, number>): string[] {
-  const features: string[] = []
-  
-  if ((count["正财"] || 0) > 0 && (count["正官"] || 0) > 0) {
-    features.push("财官双全")
-  }
-  if ((count["正财"] || 0) > 0 && (count["食神"] || 0) > 0) {
-    features.push("食伤生财")
-  }
-  if ((count["正官"] || 0) > 0 && (count["正印"] || 0) > 0) {
-    features.push("官印相生")
-  }
-  if ((count["偏财"] || 0) > 0 && (count["七杀"] || 0) > 0) {
-    features.push("杀刃相帮")
-  }
-  if ((count["比肩"] || 0) > 0 && (count["劫财"] || 0) > 0) {
-    features.push("比劫林立")
-  }
-  if ((count["食神"] || 0) > 0 && (count["伤官"] || 0) > 0) {
-    features.push("食伤齐透")
-  }
-  if ((count["正印"] || 0) > 0 && (count["偏印"] || 0) > 0) {
-    features.push("印星重重")
-  }
-  if ((count["七杀"] || 0) > 1) {
-    features.push("七杀当令")
-  }
-  
-  return features
-}
-
+// 根据日主 + 十神 + 大运流年生成详细解读
 export function generateFortune(dayMaster: string, tenGods: TenGod[]): Fortune {
+  if (!dayMaster) {
+    return {
+      wealth: "日主信息缺失，无法进行运势分析",
+      career: "日主信息缺失，无法进行运势分析",
+      marriage: "日主信息缺失，无法进行运势分析",
+      health: "日主信息缺失，无法进行运势分析",
+      study: "日主信息缺失，无法进行运势分析",
+      social: "日主信息缺失，无法进行运势分析"
+    }
+  }
+  
   const count = countTenGods(tenGods)
-  const ratio = getElementStrengthRatio(tenGods, dayMaster)
+  const elements = countElements(tenGods, dayMaster)
   const dayMasterElement = STEM_ELEMENT[dayMaster[0]] || "木"
-  const dayMasterRatio = ratio[dayMasterElement]
-  const features = analyzeStructure(count)
+  const dayMasterStrength = getElementStrength(elements, dayMasterElement)
   
   const zhengCai = count["正财"] || 0
   const pianCai = count["偏财"] || 0
@@ -108,13 +109,13 @@ export function generateFortune(dayMaster: string, tenGods: TenGod[]): Fortune {
     return "身弱"
   }
   
-  const strength = getStrengthText(dayMasterRatio)
+  const strength = getStrengthText(elements[dayMasterElement] / Object.values(elements).reduce((a, b) => a + b, 1))
   
   if (strength === "身强") {
     if (totalWealth >= 2 && totalCareer >= 1) {
       wealth = `身强且财官相生，财运事业双丰收！正财${zhengCai > 0 ? '稳固' : ''}，偏财${pianCai > 0 ? '可观' : ''}，官星${zhengGuan > 0 ? '护身' : '旺盛'}，有地位有财气。建议理财投资双管齐下，但需防小人嫉妒。`
     } else if (totalWealth >= 2) {
-      wealth = `身强财旺，财星${totalWealth}颗汇聚，财富${features.includes("食伤生财") ? '易从创意和技能中来' : '来源稳定'}。正财${zhengCai > 0 ? '为主收入' : ''}，偏财${pianCai > 0 ? '为辅增益' : ''}，整体财运上佳，适合${features.includes("食伤生财") ? '创新型投资' : '稳健理财'}。`
+      wealth = `身强财旺，财星${totalWealth}颗汇聚，财富来源稳定。正财${zhengCai > 0 ? '为主收入' : ''}，偏财${pianCai > 0 ? '为辅增益' : ''}，整体财运上佳，适合稳健理财。`
     } else if (totalWealth === 1 && pianCai > 0) {
       wealth = `身强有偏财星，财运以偏财为主，收入有惊喜。适合副业、兼职、投资理财，但需注意合理规划。`
     } else if (totalWealth === 1 && zhengCai > 0) {

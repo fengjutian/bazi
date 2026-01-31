@@ -19,6 +19,13 @@ interface Props {
   liuNianList: LiuNianDetail[]
 }
 
+// 十神数值映射
+const TEN_GOD_VALUES: Record<string, number> = {
+  '比肩': 1, '劫财': 2, '食神': 3, '伤官': 4,
+  '偏财': 5, '正财': 6, '七杀': 7, '正官': 8,
+  '偏印': 9, '正印': 10
+}
+
 export default function DaYunChart({ daYunList, liuNianList }: Props) {
   // 大运柱状图数据
   const daYunData = daYunList.map((dy, idx) => ({
@@ -27,14 +34,20 @@ export default function DaYunChart({ daYunList, liuNianList }: Props) {
     pillar: dy.pillar
   }))
 
-  // 流年十神趋势数据
-  const liuNianData = liuNianList.map(ln => ({
-    age: ln.age,
-    year: ln.year,
-    relation: ln.tenGod.relation,
-    // 为每个十神分配一个数值，用于在图表上显示
-    value: Object.keys({ 比肩: 1, 劫财: 2, 食神: 3, 伤官: 4, 偏财: 5, 正财: 6, 七杀: 7, 正官: 8, 偏印: 9, 正印: 10 }).indexOf(ln.tenGod.relation) + 1
-  }))
+  // 流年十神趋势数据 - 现在显示主要十神（天干十神）
+  const liuNianData = liuNianList.map(ln => {
+    // 取天干的十神作为主要显示
+    const mainTenGod = ln.tenGods[0] // 第一个是天干十神
+    return {
+      age: ln.age,
+      year: ln.year,
+      pillar: ln.pillar,
+      relation: mainTenGod.relation,
+      value: TEN_GOD_VALUES[mainTenGod.relation] || 0,
+      // 添加完整十神信息用于Tooltip显示
+      allTenGods: ln.tenGods.map(tg => tg.relation).join('、')
+    }
+  })
 
   return (
     <div className="space-y-8">
@@ -85,6 +98,7 @@ export default function DaYunChart({ daYunList, liuNianList }: Props) {
                 }
                 if (name === 'year') return [props.payload?.year || value, '年份']
                 if (name === 'pillar') return [props.payload?.pillar || value, '流年柱']
+                if (name === 'allTenGods') return [props.payload?.allTenGods || value, '完整十神']
                 return [value, name]
               }}
               labelFormatter={(label) => `年龄：${label}岁`}
@@ -98,8 +112,8 @@ export default function DaYunChart({ daYunList, liuNianList }: Props) {
               name="十神变化" 
               stroke="#82ca9d" 
               strokeWidth={2} 
-              dot={{ r: 4, fill: '#82ca9d', strokeWidth: 2 }} 
-              activeDot={{ r: 6, fill: '#82ca9d', stroke: '#fff', strokeWidth: 2 }} 
+              dot={{ fill: '#82ca9d', strokeWidth: 2, r: 3 }}
+              activeDot={{ r: 6, stroke: '#82ca9d', strokeWidth: 2 }}
             />
           </LineChart>
         </ResponsiveContainer>

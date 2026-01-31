@@ -153,12 +153,12 @@ export default function ResultPage({ searchParams }: ResultPageProps) {
         {/* 流年详细，每年独立 section 可分页 */}
         <section className="space-y-4">
           {liuNianList.map((ln, idx) => {
-            const yearFortune = generateFortune(result.dayMaster, [ln.tenGod])
+            const yearFortune = generateFortune(result.dayMaster, ln.tenGods)
             return (
               <div key={idx} className="p-4 border rounded break-inside-avoid">
                 <div><strong>年龄 {ln.age} 岁 / 公历 {ln.year} 年</strong></div>
                 <div>流年柱：{ln.pillar}</div>
-                <div>十神：{ln.tenGod.relation}</div>
+                <div>十神：{ln.tenGods.map(tg => tg.relation).join('、')}</div>
                 <div>五行分布：{Object.entries(ln.fiveElements).map(([k,v])=>`${k}:${v}`).join(' ')}</div>
                 <div className="mt-2 space-y-1">
                   <div><strong>财运：</strong>{yearFortune.wealth}</div>

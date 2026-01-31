@@ -12,11 +12,50 @@ export type LiuNianDetail = {
   age: number
   year: number
   pillar: string
-  tenGod: TenGod
+  tenGods: TenGod[]  // 改为数组，包含天干和地支藏干的十神
   fiveElements: Record<string, number>
 }
 
-// 流年计算，返回每年的十神 + 五行
+// 地支藏干映射
+const HIDDEN_STEMS: Record<string, string[]> = {
+  '子': ['癸'],
+  '丑': ['己', '癸', '辛'],
+  '寅': ['甲', '丙', '戊'],
+  '卯': ['乙'],
+  '辰': ['戊', '乙', '癸'],
+  '巳': ['丙', '庚', '戊'],
+  '午': ['丁', '己'],
+  '未': ['己', '丁', '乙'],
+  '申': ['庚', '壬', '戊'],
+  '酉': ['辛'],
+  '戌': ['戊', '辛', '丁'],
+  '亥': ['壬', '甲']
+}
+
+// 计算流年柱的完整十神（包含地支藏干）
+function calcLiuNianTenGods(dayStem: string, yearPillar: string): TenGod[] {
+  const tenGods: TenGod[] = []
+  
+  // 1. 流年天干的十神
+  tenGods.push({
+    stem: yearPillar[0],
+    relation: calcTenGod(dayStem, yearPillar[0])
+  })
+  
+  // 2. 流年地支藏干的十神
+  const branch = yearPillar[1]
+  const hiddenStems = HIDDEN_STEMS[branch] || []
+  hiddenStems.forEach(stem => {
+    tenGods.push({
+      stem: stem,
+      relation: calcTenGod(dayStem, stem)
+    })
+  })
+  
+  return tenGods
+}
+
+// 流年计算，返回每年的完整十神（包含地支藏干）
 export function calcLiuNianFull(
   dayStem: string,
   startYear: number,
@@ -33,13 +72,21 @@ export function calcLiuNianFull(
     const stemIndex = index % 10
     const branchIndex = index % 12
     const pillar = HEAVENLY_STEMS[(stemIndex + 10) % 10] + EARTHLY_BRANCHES[(branchIndex + 12) % 12]
-    const tenGod = { stem: pillar[0], relation: calcTenGod(dayStem, pillar[0]) }
+    
+    // 计算完整的十神（包含地支藏干）
+    const tenGods = calcLiuNianTenGods(dayStem, pillar)
 
     // 五行统计
     const fiveElements: Record<string, number> = { 木:0, 火:0, 土:0, 金:0, 水:0 }
     fiveElements[STEM_ELEMENT[pillar[0]]] = 1
 
-    liuNianList.push({ age: startAge + i, year, pillar, tenGod, fiveElements })
+    liuNianList.push({ 
+      age: startAge + i, 
+      year, 
+      pillar, 
+      tenGods,  // 改为数组
+      fiveElements 
+    })
   }
 
   return liuNianList
