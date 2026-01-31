@@ -1,5 +1,5 @@
 import { TenGod, calcTenGod } from "./tenGod"
-import { STEM_ELEMENT } from "./bazi"
+import { STEM_ELEMENT, HeavenlyStem } from "./bazi"
 
 export interface Fortune {
   wealth: string
