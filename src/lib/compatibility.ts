@@ -1,9 +1,10 @@
 // src/lib/compatibility.ts
 // 男女八字相配分析系统
 
-import { HeavenlyStem, EarthlyBranch, BaziResult } from './bazi'
-import { TenGod } from './tenGod'
+import { HeavenlyStem, EarthlyBranch, BaziResult, STEM_ELEMENT } from './bazi'
+import { TenGod, calcAllTenGods } from './tenGod'
 import { calculateCompleteElements, judgeDayMasterStrength, FiveElementsResult } from './fiveElements'
+import { calcDaYun, DaYunDetail, calcLiuNianFull, LiuNianDetail } from './daYun'
 
 // 相配分析结果
 export interface CompatibilityResult {
@@ -14,6 +15,7 @@ export interface CompatibilityResult {
     tenGods: TenGodsAnalysis
     dayMaster: DayMasterAnalysis
     pillars: PillarsAnalysis
+    daYun: DaYunAnalysis // 新增大运分析
     overall: string[] // 总体分析建议
   }
   recommendations: string[] // 相配建议
@@ -53,6 +55,22 @@ interface PillarsAnalysis {
   dayPillarMatch: number // 日柱相配度（最重要）
   hourPillarMatch: number // 时柱相配度
   advice: string[]
+}
+
+// 大运相配分析
+interface DaYunAnalysis {
+  score: number
+  startAgeSync: number // 起运时间同步度
+  pillarCompatibility: number // 大运柱相配度
+  keyPeriods: KeyPeriod[] // 关键时期分析
+  advice: string[]
+}
+
+// 关键时期分析
+interface KeyPeriod {
+  ageRange: string // 年龄范围
+  description: string // 时期描述
+  compatibility: 'high' | 'medium' | 'low' // 相配度
 }
 
 // 五行生克关系（用于相配分析）
@@ -132,23 +150,28 @@ export function analyzeCompatibility(
   // 4. 四柱相配分析
   const pillarsAnalysis = analyzePillarsCompatibility(maleBazi, femaleBazi)
   
-  // 5. 计算总体分数
+  // 5. 大运相配分析
+  const daYunAnalysis = analyzeDaYunCompatibility(maleBazi, femaleBazi)
+  
+  // 6. 计算总体分数
   const overallScore = calculateOverallScore(
     fiveElementsAnalysis.score,
     tenGodsAnalysis.score,
     dayMasterAnalysis.score,
-    pillarsAnalysis.score
+    pillarsAnalysis.score,
+    daYunAnalysis.score
   )
   
-  // 6. 生成总体分析建议
+  // 7. 生成总体分析建议
   const overallAnalysis = generateOverallAnalysis(
     fiveElementsAnalysis,
     tenGodsAnalysis,
     dayMasterAnalysis,
-    pillarsAnalysis
+    pillarsAnalysis,
+    daYunAnalysis
   )
   
-  // 7. 生成相配建议
+  // 8. 生成相配建议
   const recommendations = generateRecommendations(overallScore, overallAnalysis)
   
   return {
@@ -159,6 +182,7 @@ export function analyzeCompatibility(
       tenGods: tenGodsAnalysis,
       dayMaster: dayMasterAnalysis,
       pillars: pillarsAnalysis,
+      daYun: daYunAnalysis,
       overall: overallAnalysis
     },
     recommendations
@@ -184,45 +208,66 @@ function analyzeFiveElementsCompatibility(
   const generateChains: string[] = []
   const overcomeChains: string[] = []
   
-  // 分析五行生克关系
+  // 分析五行生克关系（精细化权重计算）
   Object.keys(maleElements.weights).forEach(element => {
     const maleWeight = maleElements.weights[element]
     const femaleWeight = femaleElements.weights[element]
     
+    // 相同五行：根据力量强弱调整分数
     if (maleWeight > 0 && femaleWeight > 0) {
-      // 相同五行：中性
-      score += 10
+      const strengthBonus = Math.min(maleWeight, femaleWeight) * 0.5
+      score += Math.round(10 + strengthBonus)
     }
     
-    // 检查相生关系
+    // 检查相生关系（根据力量强弱调整）
     const generateElement = ELEMENT_COMPATIBILITY.generate[element]
     if (generateElement && femaleElements.weights[generateElement] > 0) {
+      const generateStrength = Math.min(maleWeight, femaleElements.weights[generateElement])
+      const generateBonus = generateStrength * 0.3
       generateChains.push(`${element} → ${generateElement}`)
-      score += 20 // 相生关系加分
+      score += Math.round(20 + generateBonus) // 相生关系加分
     }
     
-    // 检查相克关系
+    // 检查相克关系（根据力量强弱调整）
     const overcomeElement = ELEMENT_COMPATIBILITY.overcome[element]
     if (overcomeElement && femaleElements.weights[overcomeElement] > 0) {
+      const overcomeStrength = Math.min(maleWeight, femaleElements.weights[overcomeElement])
+      const overcomePenalty = overcomeStrength * 0.2
       overcomeChains.push(`${element} → ${overcomeElement}`)
-      score -= 15 // 相克关系减分
+      score -= Math.round(15 + overcomePenalty) // 相克关系减分
     }
   })
   
-  // 计算五行平衡度
+  // 计算五行平衡度（精细化）
   const balance = (maleElements.balance + femaleElements.balance) / 2
-  score += Math.round(balance * 20) // 平衡度加分
+  const balanceBonus = balance * 25 // 平衡度加分（提高权重）
+  score += Math.round(balanceBonus)
   
-  // 生成建议
+  // 检查五行互补性（新增）
+  const complementarity = analyzeElementComplementarity(maleElements, femaleElements)
+  score += complementarity * 0.5
+  
+  // 生成建议（精细化）
   const advice: string[] = []
   if (generateChains.length > 0) {
-    advice.push(`五行相生关系良好：${generateChains.join('，')}`)
+    advice.push(`五行相生关系良好：${generateChains.slice(0, 3).join('，')}`)
   }
   if (overcomeChains.length > 0) {
-    advice.push(`需要注意五行相克：${overcomeChains.join('，')}`)
+    advice.push(`需要注意五行相克：${overcomeChains.slice(0, 3).join('，')}`)
   }
-  if (balance > 0.7) {
+  
+  // 根据平衡度给出具体建议
+  if (balance > 0.8) {
+    advice.push('双方五行平衡度极佳')
+  } else if (balance > 0.6) {
     advice.push('双方五行平衡度较好')
+  } else if (balance < 0.4) {
+    advice.push('五行平衡度需要关注')
+  }
+  
+  // 根据互补性给出建议
+  if (complementarity > 15) {
+    advice.push('五行互补性良好')
   }
   
   return {
@@ -234,42 +279,266 @@ function analyzeFiveElementsCompatibility(
   }
 }
 
+// 分析五行互补性（新增）
+function analyzeElementComplementarity(
+  maleElements: FiveElementsResult,
+  femaleElements: FiveElementsResult
+): number {
+  let complementarity = 0
+  
+  // 检查双方五行力量的互补性
+  Object.keys(maleElements.weights).forEach(element => {
+    const maleStrength = maleElements.strengths[element]
+    const femaleStrength = femaleElements.strengths[element]
+    
+    // 强弱互补：一方强一方弱为佳
+    if ((maleStrength === 'strong' && femaleStrength === 'weak') ||
+        (maleStrength === 'weak' && femaleStrength === 'strong')) {
+      complementarity += 10
+    }
+    
+    // 中等互补：双方中等为次佳
+    if (maleStrength === 'medium' && femaleStrength === 'medium') {
+      complementarity += 5
+    }
+    
+    // 过度偏重：双方都强或都弱需要关注
+    if ((maleStrength === 'strong' && femaleStrength === 'strong') ||
+        (maleStrength === 'weak' && femaleStrength === 'weak')) {
+      complementarity -= 8
+    }
+  })
+  
+  return complementarity
+}
+
 // 十神相配分析
 function analyzeTenGodsCompatibility(
   maleBazi: BaziResult,
   femaleBazi: BaziResult
 ): TenGodsAnalysis {
-  // 这里需要先计算十神，暂时使用简化分析
+  // 计算双方的实际十神
+  const maleTenGods = calcAllTenGods(
+    maleBazi.dayMaster,
+    Object.values(maleBazi.pillars)
+  )
+  
+  const femaleTenGods = calcAllTenGods(
+    femaleBazi.dayMaster,
+    Object.values(femaleBazi.pillars)
+  )
+  
   let score = 50 // 基础分数
   const complementaryPairs: string[] = []
   const conflictingPairs: string[] = []
   
-  // 简化分析：基于日主关系
-  const maleDayMaster = maleBazi.dayMaster
-  const femaleDayMaster = femaleBazi.dayMaster
-  
-  // 检查最佳组合
-  TENGOD_COMPATIBILITY.bestPairs.forEach(pair => {
-    // 这里需要实际的十神计算，暂时使用日主关系模拟
-    complementaryPairs.push(`${pair[0]}与${pair[1]}相配`)
-    score += 10
+  // 分析十神组合关系
+  maleTenGods.forEach(maleTg => {
+    femaleTenGods.forEach(femaleTg => {
+      const maleRelation = maleTg.relation
+      const femaleRelation = femaleTg.relation
+      
+      // 检查最佳互补组合
+      TENGOD_COMPATIBILITY.bestPairs.forEach(pair => {
+        if ((maleRelation === pair[0] && femaleRelation === pair[1]) ||
+            (maleRelation === pair[1] && femaleRelation === pair[0])) {
+          complementaryPairs.push(`${maleRelation}与${femaleRelation}相配`)
+          score += 15
+        }
+      })
+      
+      // 检查良好组合
+      TENGOD_COMPATIBILITY.goodPairs.forEach(pair => {
+        if ((maleRelation === pair[0] && femaleRelation === pair[1]) ||
+            (maleRelation === pair[1] && femaleRelation === pair[0])) {
+          complementaryPairs.push(`${maleRelation}与${femaleRelation}相配`)
+          score += 10
+        }
+      })
+      
+      // 检查需要谨慎的组合
+      TENGOD_COMPATIBILITY.cautionPairs.forEach(pair => {
+        if ((maleRelation === pair[0] && femaleRelation === pair[1]) ||
+            (maleRelation === pair[1] && femaleRelation === pair[0])) {
+          conflictingPairs.push(`${maleRelation}与${femaleRelation}相冲`)
+          score -= 12
+        }
+      })
+      
+      // 检查相同十神的组合（中性偏负）
+      if (maleRelation === femaleRelation) {
+        // 某些相同十神组合需要谨慎
+        if (['七杀', '伤官', '劫财'].includes(maleRelation)) {
+          conflictingPairs.push(`${maleRelation}与${femaleRelation}相冲`)
+          score -= 8
+        } else {
+          // 其他相同十神组合中性
+          score += 5
+        }
+      }
+    })
   })
   
   // 生成建议
   const advice: string[] = []
   if (complementaryPairs.length > 0) {
-    advice.push(`十神互补：${complementaryPairs.join('，')}`)
+    advice.push(`十神互补：${complementaryPairs.slice(0, 3).join('，')}`)
   }
   if (conflictingPairs.length > 0) {
-    advice.push(`十神冲突：${conflictingPairs.join('，')}`)
+    advice.push(`十神冲突：${conflictingPairs.slice(0, 3).join('，')}`)
+  }
+  
+  // 根据十神分布给出总体建议
+  const maleTenGodCounts = countTenGods(maleTenGods)
+  const femaleTenGodCounts = countTenGods(femaleTenGods)
+  
+  // 检查十神平衡性
+  if (isTenGodBalanced(maleTenGodCounts) && isTenGodBalanced(femaleTenGodCounts)) {
+    advice.push('双方十神分布较为平衡')
+    score += 5
   }
   
   return {
     score: Math.max(0, Math.min(100, score)),
-    complementaryPairs,
-    conflictingPairs,
+    complementaryPairs: Array.from(new Set(complementaryPairs)),
+    conflictingPairs: Array.from(new Set(conflictingPairs)),
     advice
   }
+}
+
+// 统计十神数量
+function countTenGods(tenGods: TenGod[]): Record<string, number> {
+  const counts: Record<string, number> = {}
+  tenGods.forEach(tg => {
+    counts[tg.relation] = (counts[tg.relation] || 0) + 1
+  })
+  return counts
+}
+
+// 判断十神是否平衡（没有过度偏重某类十神）
+function isTenGodBalanced(counts: Record<string, number>): boolean {
+  const total = Object.values(counts).reduce((sum, count) => sum + count, 0)
+  if (total === 0) return true
+  
+  // 检查是否有十神数量超过总数的一半
+  const maxCount = Math.max(...Object.values(counts))
+  return maxCount / total <= 0.5
+}
+
+// 大运相配分析
+function analyzeDaYunCompatibility(
+  maleBazi: BaziResult,
+  femaleBazi: BaziResult
+): DaYunAnalysis {
+  let score = 50
+  const keyPeriods: KeyPeriod[] = []
+  const advice: string[] = []
+  
+  // 计算双方的大运
+  const maleDaYun = calcDaYun(maleBazi.dayMaster, new Date(maleBazi.birthDate), true)
+  const femaleDaYun = calcDaYun(femaleBazi.dayMaster, new Date(femaleBazi.birthDate), false)
+  
+  // 1. 分析起运时间同步度
+  const maleStartAge = maleDaYun[0]?.startAge || 0
+  const femaleStartAge = femaleDaYun[0]?.startAge || 0
+  const startAgeDiff = Math.abs(maleStartAge - femaleStartAge)
+  const startAgeSync = Math.max(0, 100 - startAgeDiff * 10)
+  
+  if (startAgeDiff <= 2) {
+    advice.push('起运时间相近，运势周期较为同步')
+    score += 15
+  } else if (startAgeDiff <= 5) {
+    advice.push('起运时间有一定差异，但仍在可接受范围')
+    score += 5
+  } else {
+    advice.push('起运时间差异较大，运势周期协调性需要关注')
+    score -= 10
+  }
+  
+  // 2. 分析大运柱相配度
+  let pillarCompatibility = 0
+  const commonPeriods = Math.min(maleDaYun.length, femaleDaYun.length)
+  
+  for (let i = 0; i < commonPeriods; i++) {
+    const malePillar = maleDaYun[i].pillar
+    const femalePillar = femaleDaYun[i].pillar
+    
+    // 简化分析：检查天干地支的五行关系
+    const maleStemElement = STEM_ELEMENT[malePillar[0] as HeavenlyStem]
+    const femaleStemElement = STEM_ELEMENT[femalePillar[0] as HeavenlyStem]
+    
+    // 检查相生关系
+    const generateElement = ELEMENT_COMPATIBILITY.generate[maleStemElement]
+    if (generateElement === femaleStemElement) {
+      pillarCompatibility += 25
+    }
+    
+    // 检查相克关系（减分）
+    const overcomeElement = ELEMENT_COMPATIBILITY.overcome[maleStemElement]
+    if (overcomeElement === femaleStemElement) {
+      pillarCompatibility -= 15
+    }
+    
+    // 检查相同关系（中性）
+    if (maleStemElement === femaleStemElement) {
+      pillarCompatibility += 5
+    }
+  }
+  
+  pillarCompatibility = Math.max(0, Math.min(100, pillarCompatibility / commonPeriods))
+  score += Math.round(pillarCompatibility / 4)
+  
+  // 3. 分析关键时期
+  // 重点关注20-40岁的关键人生阶段
+  const keyAges = [20, 25, 30, 35, 40]
+  keyAges.forEach(age => {
+    const malePeriod = maleDaYun.find(dy => Math.abs(dy.startAge - age) <= 5)
+    const femalePeriod = femaleDaYun.find(dy => Math.abs(dy.startAge - age) <= 5)
+    
+    if (malePeriod && femalePeriod) {
+      const compatibility = analyzePeriodCompatibility(malePeriod, femalePeriod)
+      keyPeriods.push({
+        ageRange: `${age - 2}-${age + 2}岁`,
+        description: `双方${age}岁左右大运分析`,
+        compatibility
+      })
+    }
+  })
+  
+  // 根据关键时期分析给出建议
+  const highPeriods = keyPeriods.filter(p => p.compatibility === 'high').length
+  if (highPeriods >= 3) {
+    advice.push('关键人生阶段运势协调性良好')
+    score += 10
+  }
+  
+  return {
+    score: Math.max(0, Math.min(100, score)),
+    startAgeSync,
+    pillarCompatibility,
+    keyPeriods,
+    advice
+  }
+}
+
+// 分析特定时期的大运相配度
+function analyzePeriodCompatibility(malePeriod: DaYunDetail, femalePeriod: DaYunDetail): 'high' | 'medium' | 'low' {
+  const maleStemElement = STEM_ELEMENT[malePeriod.pillar[0] as HeavenlyStem]
+  const femaleStemElement = STEM_ELEMENT[femalePeriod.pillar[0] as HeavenlyStem]
+  
+  // 检查相生关系
+  const generateElement = ELEMENT_COMPATIBILITY.generate[maleStemElement]
+  if (generateElement === femaleStemElement) {
+    return 'high'
+  }
+  
+  // 检查相克关系
+  const overcomeElement = ELEMENT_COMPATIBILITY.overcome[maleStemElement]
+  if (overcomeElement === femaleStemElement) {
+    return 'low'
+  }
+  
+  return 'medium'
 }
 
 // 日主相配分析
@@ -414,15 +683,26 @@ function calculateOverallScore(
   fiveElementsScore: number,
   tenGodsScore: number,
   dayMasterScore: number,
-  pillarsScore: number
+  pillarsScore: number,
+  daYunScore: number
 ): number {
-  // 权重分配：五行30%，十神25%，日主25%，四柱20%
-  return Math.round(
-    fiveElementsScore * 0.3 +
-    tenGodsScore * 0.25 +
-    dayMasterScore * 0.25 +
-    pillarsScore * 0.2
-  )
+  // 加权平均：日柱最重要，五行次之，十神、大运和年柱再次
+  const weights = {
+    fiveElements: 0.20,
+    tenGods: 0.15,
+    dayMaster: 0.25,
+    pillars: 0.20,
+    daYun: 0.20
+  }
+  
+  const weightedScore = 
+    fiveElementsScore * weights.fiveElements +
+    tenGodsScore * weights.tenGods +
+    dayMasterScore * weights.dayMaster +
+    pillarsScore * weights.pillars +
+    daYunScore * weights.daYun
+  
+  return Math.round(weightedScore)
 }
 
 // 生成总体分析
@@ -430,7 +710,8 @@ function generateOverallAnalysis(
   fiveElements: FiveElementsAnalysis,
   tenGods: TenGodsAnalysis,
   dayMaster: DayMasterAnalysis,
-  pillars: PillarsAnalysis
+  pillars: PillarsAnalysis,
+  daYun: DaYunAnalysis
 ): string[] {
   const analysis: string[] = []
   
@@ -445,6 +726,9 @@ function generateOverallAnalysis(
   }
   if (pillars.score >= 70) {
     analysis.push('四柱搭配和谐')
+  }
+  if (daYun.score >= 70) {
+    analysis.push('大运走势协调')
   }
   
   return analysis
