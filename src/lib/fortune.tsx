@@ -200,7 +200,8 @@ export function generateFortune(dayMaster: string, pillars: string[]): Fortune {
   
   const count = countCompleteTenGods(dayMaster, pillars)
   const elements = countCompleteElements(dayMaster, pillars)
-  const dayMasterElement = STEM_ELEMENT[dayMaster[0]] || "木"
+  const dayMasterStem = dayMaster[0] as HeavenlyStem
+  const dayMasterElement = STEM_ELEMENT[dayMasterStem] || "木"
   const dayMasterRatio = elements[dayMasterElement] / Object.values(elements).reduce((a, b) => a + b, 0)
   const features = analyzeStructure(count)
   
