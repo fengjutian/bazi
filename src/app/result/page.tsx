@@ -43,8 +43,13 @@ export default function ResultPage({ searchParams }: ResultPageProps) {
   // 4️⃣ 流年计算
   const liuNianList = calcLiuNianFull(result.dayMaster, birthYear, daYunList[0].startAge, true)
 
-  // 5️⃣ 综合运势
-  const fortune = generateFortune(result.dayMaster, tenGods)
+  // 5️⃣ 综合运势（使用完整八字信息）
+  const fortune = generateFortune(result.dayMaster, [
+    result.pillars.year,
+    result.pillars.month,
+    result.pillars.day,
+    result.pillars.hour
+  ])
 
   return (
     <div className="p-8 max-w-4xl mx-auto space-y-6">

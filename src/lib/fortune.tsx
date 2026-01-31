@@ -1,4 +1,4 @@
-import { TenGod } from "./tenGod"
+import { TenGod, calcTenGod } from "./tenGod"
 import { STEM_ELEMENT } from "./bazi"
 
 export interface Fortune {
@@ -10,7 +10,97 @@ export interface Fortune {
   social?: string
 }
 
-// 计算十神数量
+// 地支五行映射
+const BRANCH_ELEMENT: Record<string, string> = {
+  '子': '水', '亥': '水',
+  '寅': '木', '卯': '木',
+  '巳': '火', '午': '火',
+  '申': '金', '酉': '金',
+  '辰': '土', '戌': '土', '丑': '土', '未': '土'
+}
+
+// 地支藏干映射
+const HIDDEN_STEMS: Record<string, string[]> = {
+  '子': ['癸'],
+  '丑': ['己', '癸', '辛'],
+  '寅': ['甲', '丙', '戊'],
+  '卯': ['乙'],
+  '辰': ['戊', '乙', '癸'],
+  '巳': ['丙', '庚', '戊'],
+  '午': ['丁', '己'],
+  '未': ['己', '丁', '乙'],
+  '申': ['庚', '壬', '戊'],
+  '酉': ['辛'],
+  '戌': ['戊', '辛', '丁'],
+  '亥': ['壬', '甲']
+}
+
+// 计算完整的十神数量（包含地支藏干）
+function countCompleteTenGods(dayMaster: string, pillars: string[]): Record<string, number> {
+  const count: Record<string, number> = {}
+  
+  // 计算四柱天干的十神
+  pillars.forEach(pillar => {
+    const stem = pillar[0]
+    const relation = calcTenGod(dayMaster, stem)
+    count[relation] = (count[relation] || 0) + 1
+  })
+  
+  // 计算地支藏干的十神
+  pillars.forEach(pillar => {
+    const branch = pillar[1]
+    const hiddenStems = HIDDEN_STEMS[branch] || []
+    hiddenStems.forEach(stem => {
+      const relation = calcTenGod(dayMaster, stem)
+      count[relation] = (count[relation] || 0) + 1
+    })
+  })
+  
+  return count
+}
+
+// 计算完整的五行数量（包含地支和藏干）
+function countCompleteElements(dayMaster: string, pillars: string[]): Record<string, number> {
+  const count: Record<string, number> = { '木': 0, '火': 0, '土': 0, '金': 0, '水': 0 }
+  const dayMasterElement = STEM_ELEMENT[dayMaster[0]] || "木"
+  
+  // 日主权重为4
+  count[dayMasterElement] += 4
+  
+  // 计算四柱天干的五行
+  pillars.forEach(pillar => {
+    const stem = pillar[0]
+    const element = STEM_ELEMENT[stem]
+    if (element) {
+      count[element]++
+    }
+  })
+  
+  // 计算地支的五行
+  pillars.forEach(pillar => {
+    const branch = pillar[1]
+    const element = BRANCH_ELEMENT[branch]
+    if (element) {
+      count[element]++
+    }
+  })
+  
+  // 计算地支藏干的五行
+  pillars.forEach(pillar => {
+    const branch = pillar[1]
+    const hiddenStems = HIDDEN_STEMS[branch] || []
+    hiddenStems.forEach(stem => {
+      const element = STEM_ELEMENT[stem]
+      if (element) {
+        count[element]++
+      }
+    })
+  })
+  
+  return count
+}
+
+// 计算十神数量（向后兼容）
 function countTenGods(tenGods: TenGod[]): Record<string, number> {
   const count: Record<string, number> = {}
   if (!tenGods || !Array.isArray(tenGods)) {
@@ -25,7 +115,7 @@ function countTenGods(tenGods: TenGod[]): Record<string, number> {
   return count
 }
 
-// 计算五行数量
+// 计算五行数量（向后兼容）
 function countElements(tenGods: TenGod[], dayMaster: string): Record<string, number> {
   const count: Record<string, number> = { '木': 0, '火': 0, '土': 0, '金': 0, '水': 0 }
   const dayMasterElement = STEM_ELEMENT[dayMaster[0]] || "木"
@@ -61,23 +151,56 @@ function getElementStrength(count: Record<string, number>, element: string): 'st
   return 'weak'
 }
 
-// 根据日主 + 十神 + 大运流年生成详细解读
-export function generateFortune(dayMaster: string, tenGods: TenGod[]): Fortune {
-  if (!dayMaster) {
+// 分析命理格局
+function analyzeStructure(count: Record<string, number>): string[] {
+  const features: string[] = []
+  
+  if ((count["正财"] || 0) > 0 && (count["正官"] || 0) > 0) {
+    features.push("财官双全")
+  }
+  if ((count["正财"] || 0) > 0 && (count["食神"] || 0) > 0) {
+    features.push("食伤生财")
+  }
+  if ((count["正官"] || 0) > 0 && (count["正印"] || 0) > 0) {
+    features.push("官印相生")
+  }
+  if ((count["偏财"] || 0) > 0 && (count["七杀"] || 0) > 0) {
+    features.push("杀刃相帮")
+  }
+  if ((count["比肩"] || 0) > 0 && (count["劫财"] || 0) > 0) {
+    features.push("比劫林立")
+  }
+  if ((count["食神"] || 0) > 0 && (count["伤官"] || 0) > 0) {
+    features.push("食伤齐透")
+  }
+  if ((count["正印"] || 0) > 0 && (count["偏印"] || 0) > 0) {
+    features.push("印星重重")
+  }
+  if ((count["七杀"] || 0) > 1) {
+    features.push("七杀当令")
+  }
+  
+  return features
+}
+
+// 根据日主 + 四柱生成详细解读（新版本）
+export function generateFortune(dayMaster: string, pillars: string[]): Fortune {
+  if (!dayMaster || !pillars || !Array.isArray(pillars) || pillars.length !== 4) {
     return {
-      wealth: "日主信息缺失，无法进行运势分析",
-      career: "日主信息缺失，无法进行运势分析",
-      marriage: "日主信息缺失，无法进行运势分析",
-      health: "日主信息缺失，无法进行运势分析",
-      study: "日主信息缺失，无法进行运势分析",
-      social: "日主信息缺失，无法进行运势分析"
+      wealth: "八字信息不完整，无法进行运势分析",
+      career: "八字信息不完整，无法进行运势分析",
+      marriage: "八字信息不完整，无法进行运势分析",
+      health: "八字信息不完整，无法进行运势分析",
+      study: "八字信息不完整，无法进行运势分析",
+      social: "八字信息不完整，无法进行运势分析"
     }
   }
   
-  const count = countTenGods(tenGods)
-  const elements = countElements(tenGods, dayMaster)
+  const count = countCompleteTenGods(dayMaster, pillars)
+  const elements = countCompleteElements(dayMaster, pillars)
   const dayMasterElement = STEM_ELEMENT[dayMaster[0]] || "木"
-  const dayMasterStrength = getElementStrength(elements, dayMasterElement)
+  const dayMasterRatio = elements[dayMasterElement] / Object.values(elements).reduce((a, b) => a + b, 0)
+  const features = analyzeStructure(count)
   
   const zhengCai = count["正财"] || 0
   const pianCai = count["偏财"] || 0
@@ -109,40 +232,43 @@ export function generateFortune(dayMaster: string, tenGods: TenGod[]): Fortune {
     return "身弱"
   }
   
-  const strength = getStrengthText(elements[dayMasterElement] / Object.values(elements).reduce((a, b) => a + b, 1))
+  const strength = getStrengthText(dayMasterRatio)
   
+  // 根据身强身弱和十神组合生成详细分析
   if (strength === "身强") {
-    if (totalWealth >= 2 && totalCareer >= 1) {
-      wealth = `身强且财官相生，财运事业双丰收！正财${zhengCai > 0 ? '稳固' : ''}，偏财${pianCai > 0 ? '可观' : ''}，官星${zhengGuan > 0 ? '护身' : '旺盛'}，有地位有财气。建议理财投资双管齐下，但需防小人嫉妒。`
-    } else if (totalWealth >= 2) {
+    if (features.includes("财官双全")) {
+      wealth = `身强财官双全，财运事业双丰收！正财${zhengCai}颗稳固，偏财${pianCai}颗可观，官星${zhengGuan}颗护身，有地位有财气。建议理财投资双管齐下，但需防小人嫉妒。`
+    } else if (totalWealth >= 3) {
       wealth = `身强财旺，财星${totalWealth}颗汇聚，财富来源稳定。正财${zhengCai > 0 ? '为主收入' : ''}，偏财${pianCai > 0 ? '为辅增益' : ''}，整体财运上佳，适合稳健理财。`
     } else if (totalWealth === 1 && pianCai > 0) {
       wealth = `身强有偏财星，财运以偏财为主，收入有惊喜。适合副业、兼职、投资理财，但需注意合理规划。`
     } else if (totalWealth === 1 && zhengCai > 0) {
       wealth = `身强正财${zhengCai}颗守身，财运${zhengCai >= 2 ? '丰厚' : '平稳'}。收入主要来自工资和正当渠道，适合深耕本业。`
-    } else if (totalPrint >= 2) {
+    } else if (features.includes("食伤生财")) {
+      wealth = `身强食伤生财，才华横溢财源广进。适合艺术、设计、创意产业，或写作、演讲、教育。`
+    } else if (totalPrint >= 3) {
       wealth = `身强印星${totalPrint}颗护身，财星不显，宜靠学识和技术吃饭。可考虑教育、咨询、技术服务等领域。`
-    } else if (totalFood >= 2) {
+    } else if (totalFood >= 3) {
       wealth = `身强食伤${totalFood}颗旺盛，才华横溢，财源广进。适合艺术、设计、创意产业，或写作、演讲、教育。`
-    } else if (totalFriend >= 2) {
+    } else if (totalFriend >= 3) {
       wealth = `身强比劫${totalFriend}颗助身，财星虽有但需靠合作共赢。建议合伙经营或团队合作。`
     } else {
       wealth = `身强日主当令，财星${totalWealth}颗相伴。需靠自身努力创造财富，建议发挥专长踏实工作。`
     }
     
-    if (totalCareer >= 2 && totalPrint >= 1) {
+    if (features.includes("官印相生")) {
       career = `身强官印相生，事业有贵气，仕途顺遂。官星正官坐镇地位稳固，或七杀得用压力与机遇并存。适合管理、公务、事业单位。`
-    } else if (totalCareer >= 2) {
+    } else if (totalCareer >= 3) {
       career = `身强官星${totalCareer}颗汇聚，事业有野心有动力。正官有领导力，适合开创性事业，可多线发展。`
     } else if (totalCareer === 1 && zhengGuan > 0) {
       career = `身强正官护身，事业稳步上升。工作态度认真受领导赏识，建议独立决策配合团队。`
     } else if (totalCareer === 1 && qiSha > 0) {
       career = `身强七杀在命，事业有冲劲有斗志。有胆识有魄力，适合竞争激烈的环境和技术型岗位。`
-    } else if (totalPrint >= 2) {
+    } else if (totalPrint >= 3) {
       career = `身强印星护身，学术文化领域有优势。适合教育、文化、科研，正印有贵人缘可考虑传统行业。`
-    } else if (totalFood >= 2) {
+    } else if (totalFood >= 3) {
       career = `身强食伤旺盛，才华横溢适合创意产业。适合艺术、设计、媒体，可考虑自营创业。`
-    } else if (totalFriend >= 2) {
+    } else if (totalFriend >= 3) {
       career = `身强比劫助身，适合独立创业或合作经营。有魄力有冲劲，执行力强，适合商业。`
     } else {
       career = `身强日主当令，官星${totalCareer}颗相伴。事业需靠自身努力争取，建议提升专业稳步发展。`
@@ -408,4 +534,11 @@ export function generateFortune(dayMaster: string, tenGods: TenGod[]): Fortune {
   }
   
   return { wealth, career, marriage, health, study, social }
+}
+
+// 保持向后兼容的旧版本函数
+export function generateFortuneLegacy(dayMaster: string, tenGods: TenGod[]): Fortune {
+  // 将旧的 TenGod[] 转换为四柱字符串数组
+  const pillars = tenGods.map(tg => tg.stem + "X") // 用占位符表示地支
+  return generateFortune(dayMaster, pillars)
 }
