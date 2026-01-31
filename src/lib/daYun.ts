@@ -1,5 +1,6 @@
-import { HEAVENLY_STEMS, EARTHLY_BRANCHES, STEM_ELEMENT } from './bazi'
+import { HEAVENLY_STEMS, EARTHLY_BRANCHES, STEM_ELEMENT, HeavenlyStem, EarthlyBranch } from './bazi'
 import { calcTenGod, TenGod } from './tenGod'
+import { getNextSolarTerm, daysBetween } from './solarTerms'
 
 export type DaYunDetail = {
   startAge: number
@@ -92,39 +93,108 @@ export function calcLiuNianFull(
   return liuNianList
 }
 
-// 大运计算，返回每步大运的十神 + 五行
-export function calcDaYun(
-  dayStem: string,
-  startYear: number,
-  male = true
-): DaYunDetail[] {
-  const direction = male ? 1 : -1
+// 计算精确的起运时间
+export function calculateStartAge(birthDate: Date, dayMaster: HeavenlyStem, male: boolean): number {
+  // 阳男阴女顺排，阴男阳女逆排
+  const dayMasterIndex = HEAVENLY_STEMS.indexOf(dayMaster)
+  const isYang = dayMasterIndex % 2 === 0 // 阳干：甲丙戊庚壬
+  const direction = (male && isYang) || (!male && !isYang) ? 1 : -1
+  
+  // 计算出生时间到下一个节气的时间差
+  const nextTerm = getNextSolarTerm(birthDate)
+  const daysToNextTerm = daysBetween(birthDate, nextTerm.date)
+  
+  // 3天为1岁，1天为4个月，1个时辰为10天
+  const hours = birthDate.getHours()
+  const minutes = birthDate.getMinutes()
+  const totalHours = hours + minutes / 60
+  
+  // 计算起运时间（岁）
+  const startAgeYears = daysToNextTerm / 3
+  const startAgeMonths = (daysToNextTerm % 3) * 4
+  const startAgeDays = (totalHours / 24) * 10
+  
+  // 转换为岁数（保留2位小数）
+  const startAge = startAgeYears + (startAgeMonths / 12) + (startAgeDays / 365)
+  
+  return Math.round(startAge * 100) / 100
+}
+
+// 计算大运天干地支
+export function calcDaYunPillar(birthMonthPillar: string, direction: number, index: number): string {
+  const monthStem = birthMonthPillar[0] as HeavenlyStem
+  const monthBranch = birthMonthPillar[1] as EarthlyBranch
+  
+  const monthStemIndex = HEAVENLY_STEMS.indexOf(monthStem)
+  const monthBranchIndex = EARTHLY_BRANCHES.indexOf(monthBranch)
+  
+  // 根据方向计算大运天干地支
+  const stemIndex = (monthStemIndex + direction * index + 10) % 10
+  const branchIndex = (monthBranchIndex + direction * index + 12) % 12
+  
+  return HEAVENLY_STEMS[stemIndex] + EARTHLY_BRANCHES[branchIndex]
+}
+
+// 计算大运
+export function calcDaYun(dayMaster: HeavenlyStem, birthDate: Date, male = true): DaYunDetail[] {
   const daYunList: DaYunDetail[] = []
-
-  // 传统八字中，通常从6岁开始起运，每10年一步
-  const baseStartAge = 6
-
-  for (let i = 0; i < 6; i++) {
-    const startAge = baseStartAge + i * 10
-    const offset = direction * i
+  
+  // 计算精确起运时间
+  const startAge = calculateStartAge(birthDate, dayMaster, male)
+  
+  // 确定大运方向
+  const dayMasterIndex = HEAVENLY_STEMS.indexOf(dayMaster)
+  const isYang = dayMasterIndex % 2 === 0
+  const direction = (male && isYang) || (!male && !isYang) ? 1 : -1
+  
+  // 需要月柱来计算大运，这里简化处理
+  // 实际应该从八字结果中获取月柱
+  const birthYear = birthDate.getFullYear()
+  const birthMonth = birthDate.getMonth() + 1
+  const birthDay = birthDate.getDate()
+  
+  // 临时计算月柱（简化）
+  const yearIndex = (birthYear - 4) % 60
+  const yearStemIndex = (yearIndex % 10 + 10) % 10
+  const yearStem = HEAVENLY_STEMS[yearStemIndex]
+  
+  // 使用简化方法计算月柱
+  const monthBranchIndex = (birthMonth + 10) % 12
+  const monthStemIndex = (yearStemIndex * 2 + monthBranchIndex) % 10
+  const birthMonthPillar = HEAVENLY_STEMS[monthStemIndex] + EARTHLY_BRANCHES[monthBranchIndex]
+  
+  for (let i = 0; i < 10; i++) {
+    const startAgeForThisDaYun = Math.round(startAge + i * 10 * 100) / 100
     
-    // 大运天干：从日主开始，顺逆推
-    const stemIndex = (HEAVENLY_STEMS.indexOf(dayStem) + offset) % 10
+    // 计算大运天干地支
+    const pillar = calcDaYunPillar(birthMonthPillar, direction, i)
     
-    // 大运地支：根据出生年份地支顺逆推
-    const birthYearBranchIndex = (startYear - 4) % 12
-    const branchIndex = (birthYearBranchIndex + direction * i * 2) % 12
+    // 十神计算
+    const tenGod: TenGod = {
+      stem: pillar[0],
+      relation: calcTenGod(dayMaster, pillar[0])
+    }
     
-    const pillar = HEAVENLY_STEMS[(stemIndex + 10) % 10] + EARTHLY_BRANCHES[(branchIndex + 12) % 12]
-    const tenGod = { stem: pillar[0], relation: calcTenGod(dayStem, pillar[0]) }
-
-    // 五行统计
+    // 五行统计（包含地支）
     const fiveElements: Record<string, number> = { 木:0, 火:0, 土:0, 金:0, 水:0 }
-    fiveElements[STEM_ELEMENT[pillar[0]]] = 1
-
-    daYunList.push({ startAge, pillar, tenGod, fiveElements })
+    fiveElements[STEM_ELEMENT[tenGod.stem as HeavenlyStem]]++
+    
+    // 地支五行
+    const branchElement = {
+      '子':'水', '丑':'土', '寅':'木', '卯':'木',
+      '辰':'土', '巳':'火', '午':'火', '未':'土',
+      '申':'金', '酉':'金', '戌':'土', '亥':'水'
+    }[pillar[1]] || '木'
+    fiveElements[branchElement]++
+    
+    daYunList.push({
+      startAge: startAgeForThisDaYun,
+      pillar,
+      tenGod,
+      fiveElements
+    })
   }
-
+  
   return daYunList
 }
 

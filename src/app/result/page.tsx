@@ -38,7 +38,8 @@ export default function ResultPage({ searchParams }: ResultPageProps) {
   ])
 
   // 3️⃣ 大运计算
-  const daYunList = calcDaYun(result.dayMaster, birthYear, true)
+  const birthDate = new Date(birthYear, birthMonth - 1, birthDay, birthHour)
+  const daYunList = calcDaYun(result.dayMaster, birthDate, true)
 
   // 4️⃣ 流年计算
   const liuNianList = calcLiuNianFull(result.dayMaster, birthYear, daYunList[0].startAge, true)
@@ -158,7 +159,14 @@ export default function ResultPage({ searchParams }: ResultPageProps) {
         {/* 流年详细，每年独立 section 可分页 */}
         <section className="space-y-4">
           {liuNianList.map((ln, idx) => {
-            const yearFortune = generateFortune(result.dayMaster, ln.tenGods)
+            // 为流年创建临时的四柱数组（使用流年柱作为年柱，其他柱用默认值）
+            const tempPillars = [
+              ln.pillar, // 流年柱作为年柱
+              result.pillars.month, // 使用原月柱
+              result.pillars.day,   // 使用原日柱
+              result.pillars.hour   // 使用原时柱
+            ]
+            const yearFortune = generateFortune(result.dayMaster, tempPillars)
             return (
               <div key={idx} className="p-4 border rounded break-inside-avoid">
                 <div><strong>年龄 {ln.age} 岁 / 公历 {ln.year} 年</strong></div>
