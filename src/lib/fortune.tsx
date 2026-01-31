@@ -91,7 +91,7 @@ function countCompleteElements(dayMaster: string, pillars: string[]): Record<str
     const branch = pillar[1]
     const hiddenStems = HIDDEN_STEMS[branch] || []
     hiddenStems.forEach(stem => {
-      const element = STEM_ELEMENT[stem]
+      const element = STEM_ELEMENT[stem as HeavenlyStem]
       if (element) {
         count[element]++
       }
@@ -119,7 +119,8 @@ function countTenGods(tenGods: TenGod[]): Record<string, number> {
 // 计算五行数量（向后兼容）
 function countElements(tenGods: TenGod[], dayMaster: string): Record<string, number> {
   const count: Record<string, number> = { '木': 0, '火': 0, '土': 0, '金': 0, '水': 0 }
-  const dayMasterElement = STEM_ELEMENT[dayMaster[0]] || "木"
+  const dayMasterStem = dayMaster[0] as HeavenlyStem
+  const dayMasterElement = STEM_ELEMENT[dayMasterStem] || "木"
   
   if (!tenGods || !Array.isArray(tenGods)) {
     count[dayMasterElement] += 4
@@ -130,7 +131,7 @@ function countElements(tenGods: TenGod[], dayMaster: string): Record<string, num
   
   tenGods.forEach(tg => {
     if (tg && tg.stem) {
-      const element = STEM_ELEMENT[tg.stem]
+      const element = STEM_ELEMENT[tg.stem as HeavenlyStem]
       if (element) {
         count[element]++
       }
