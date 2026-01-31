@@ -1,12 +1,12 @@
 // src/app/compatibility/page.tsx
 "use client"
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { calcBazi } from "@/lib/bazi"
 import { analyzeCompatibility, CompatibilityResult } from "@/lib/compatibility"
 import { useSearchParams } from 'next/navigation'
 
-export default function CompatibilityPage() {
+function CompatibilityContent() {
   const searchParams = useSearchParams()
   const [result, setResult] = useState<CompatibilityResult | null>(null)
   
@@ -197,5 +197,20 @@ export default function CompatibilityPage() {
         </a>
       </section>
     </div>
+  )
+}
+
+export default function CompatibilityPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">正在加载...</p>
+        </div>
+      </div>
+    }>
+      <CompatibilityContent />
+    </Suspense>
   )
 }

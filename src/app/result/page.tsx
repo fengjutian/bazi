@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { calcBazi } from "@/lib/bazi"
 import { explainBazi } from "@/lib/explain"
@@ -12,7 +12,7 @@ import BaziChart from "@/components/BaziChart"
 import DaYunChart from "@/components/DaYunChart"
 import ExportPdfButton from "@/components/ExportPdfButton"
 
-export default function ResultPage() {
+function ResultContent() {
   const searchParams = useSearchParams()
   const [result, setResult] = useState<ReturnType<typeof calcBazi> | null>(null)
   const [tenGods, setTenGods] = useState<any[]>([])
@@ -342,5 +342,20 @@ export default function ResultPage() {
         </section>
       </div>
     </div>
+  )
+}
+
+export default function ResultPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">正在加载...</p>
+        </div>
+      </div>
+    }>
+      <ResultContent />
+    </Suspense>
   )
 }
