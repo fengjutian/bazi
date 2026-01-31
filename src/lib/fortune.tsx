@@ -70,7 +70,7 @@ function countCompleteElements(dayMaster: string, pillars: string[]): Record<str
   
   // 计算四柱天干的五行
   pillars.forEach(pillar => {
-    const stem = pillar[0]
+    const stem = pillar[0] as HeavenlyStem
     const element = STEM_ELEMENT[stem]
     if (element) {
       count[element]++
