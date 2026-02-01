@@ -16,3 +16,8 @@
   from = "/compatibility"
   to = "/compatibility"
   status = 200
+
+[[redirects]]
+  from = "/spouse-recommendation"
+  to = "/spouse-recommendation"
+  status = 200

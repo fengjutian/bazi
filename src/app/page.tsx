@@ -3,10 +3,11 @@
 
 import BaziForm from '@/components/BaziForm'
 import CompatibilityForm from '@/components/CompatibilityForm'
+import SpouseRecommendationForm from '@/components/SpouseRecommendationForm'
 import { useState } from 'react'
 
 export default function HomePage() {
-  const [activeTab, setActiveTab] = useState<'bazi' | 'compatibility'>('bazi')
+  const [activeTab, setActiveTab] = useState<'bazi' | 'compatibility' | 'spouse'>('bazi')
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
@@ -53,6 +54,20 @@ export default function HomePage() {
                 <span>男女八字相配</span>
               </div>
             </button>
+            
+            <button
+              onClick={() => setActiveTab('spouse')}
+              className={`flex-1 py-4 text-center font-semibold transition-all duration-300 ${
+                activeTab === 'spouse'
+                  ? 'text-pink-600 border-b-2 border-pink-600 bg-pink-50'
+                  : 'text-gray-500 hover:text-pink-500 hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex items-center justify-center space-x-2">
+                <span>💖</span>
+                <span>智能配偶推荐</span>
+              </div>
+            </button>
           </div>
         </div>
 
@@ -96,6 +111,26 @@ export default function HomePage() {
               </p>
             </div>
             <CompatibilityForm />
+          </div>
+
+          {/* 智能配偶推荐 */}
+          <div 
+            className={`transition-all duration-500 ${
+              activeTab === 'spouse' 
+                ? 'block opacity-100 translate-y-0' 
+                : 'hidden opacity-0 -translate-y-4'
+            }`}
+          >
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-3">
+                智能配偶推荐
+              </h2>
+              <p className="text-gray-600 leading-relaxed">
+                输入您的八字信息，系统将基于传统命理学原理，智能推荐最合适的异性配偶。
+                综合考虑五行互补、十神相配、日主强弱等因素，为您提供科学的匹配建议。
+              </p>
+            </div>
+            <SpouseRecommendationForm />
           </div>
         </div>
 
