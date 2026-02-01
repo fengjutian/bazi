@@ -25,7 +25,7 @@ function SpouseRecommendationContent() {
       setUserBazi(bazi)
 
       // 获取配偶推荐
-      const spouseRecommendations = recommendSpouse(year, month, day, hour)
+      const spouseRecommendations = recommendSpouse(year, month, day, hour, gender as 'male' | 'female')
       setRecommendations(spouseRecommendations)
     } catch (error) {
       console.error('配偶推荐计算错误:', error)

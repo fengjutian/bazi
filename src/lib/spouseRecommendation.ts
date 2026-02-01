@@ -87,25 +87,61 @@ function getBestSpouseFiveElements(userElements: Record<string, number>): Record
   return recommendedElements
 }
 
-// 生成推荐的出生年份范围
-function getRecommendedBirthYears(userBirthYear: number): number[] {
+// 生成推荐的出生年份范围（符合传统婚配观念）
+function getRecommendedBirthYears(userBirthYear: number, userGender: 'male' | 'female'): number[] {
   const currentYear = new Date().getFullYear()
   const minAge = 20
   const maxAge = 40
   
   const years: number[] = []
   
-  // 推荐年龄差在±5岁范围内的年份
-  for (let ageDiff = -5; ageDiff <= 5; ageDiff++) {
-    const spouseYear = userBirthYear + ageDiff
-    const spouseAge = currentYear - spouseYear
+  if (userGender === 'male') {
+    // 男性：推荐年龄相等或稍小的女性（传统观念：男大女小）
+    for (let ageDiff = 0; ageDiff <= 5; ageDiff++) {
+      const spouseYear = userBirthYear + ageDiff
+      const spouseAge = currentYear - spouseYear
+      
+      if (spouseAge >= minAge && spouseAge <= maxAge && spouseYear >= 1900 && spouseYear <= currentYear) {
+        years.push(spouseYear)
+      }
+    }
     
-    if (spouseAge >= minAge && spouseAge <= maxAge && spouseYear >= 1900 && spouseYear <= currentYear) {
-      years.push(spouseYear)
+    // 如果没有合适的，放宽到±3岁范围
+    if (years.length === 0) {
+      for (let ageDiff = -3; ageDiff <= 3; ageDiff++) {
+        const spouseYear = userBirthYear + ageDiff
+        const spouseAge = currentYear - spouseYear
+        
+        if (spouseAge >= minAge && spouseAge <= maxAge && spouseYear >= 1900 && spouseYear <= currentYear) {
+          years.push(spouseYear)
+        }
+      }
+    }
+  } else {
+    // 女性：推荐年龄相等或稍大的男性（传统观念：女小男大）
+    for (let ageDiff = -5; ageDiff <= 0; ageDiff++) {
+      const spouseYear = userBirthYear + ageDiff
+      const spouseAge = currentYear - spouseYear
+      
+      if (spouseAge >= minAge && spouseAge <= maxAge && spouseYear >= 1900 && spouseYear <= currentYear) {
+        years.push(spouseYear)
+      }
+    }
+    
+    // 如果没有合适的，放宽到±3岁范围
+    if (years.length === 0) {
+      for (let ageDiff = -3; ageDiff <= 3; ageDiff++) {
+        const spouseYear = userBirthYear + ageDiff
+        const spouseAge = currentYear - spouseYear
+        
+        if (spouseAge >= minAge && spouseAge <= maxAge && spouseYear >= 1900 && spouseYear <= currentYear) {
+          years.push(spouseYear)
+        }
+      }
     }
   }
   
-  return years.length > 0 ? years : [userBirthYear - 3, userBirthYear - 1, userBirthYear + 1, userBirthYear + 3]
+  return years.length > 0 ? years : [userBirthYear - 2, userBirthYear, userBirthYear + 2]
 }
 
 // 生成推荐的配偶八字
@@ -160,7 +196,8 @@ export function recommendSpouse(
   userYear: number,
   userMonth: number,
   userDay: number,
-  userHour: number
+  userHour: number,
+  userGender: 'male' | 'female'
 ): SpouseRecommendation[] {
   try {
     // 计算用户八字
@@ -168,7 +205,7 @@ export function recommendSpouse(
     
     // 获取推荐参数
     const recommendedDayMasters = getBestSpouseDayMaster(userBazi.dayMaster)
-    const recommendedYears = getRecommendedBirthYears(userYear)
+    const recommendedYears = getRecommendedBirthYears(userYear, userGender)
     
     // 生成推荐的配偶八字
     const spouseBaziList = generateRecommendedSpouseBazi(userBazi, recommendedDayMasters, recommendedYears)
