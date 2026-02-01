@@ -136,10 +136,16 @@ const DAYMASTER_COMPATIBILITY = {
 // 主要分析函数
 export function analyzeCompatibility(
   maleBazi: BaziResult,
-  femaleBazi: BaziResult
+  femaleBazi: BaziResult,
+  maleIsCesarean: boolean = false,
+  femaleIsCesarean: boolean = false,
+  maleAddress?: string,
+  femaleAddress?: string
 ): CompatibilityResult {
   // 1. 五行相配分析
-  const fiveElementsAnalysis = analyzeFiveElementsCompatibility(maleBazi, femaleBazi)
+  const fiveElementsAnalysis = analyzeFiveElementsCompatibility(
+    maleBazi, femaleBazi, maleIsCesarean, femaleIsCesarean, maleAddress, femaleAddress
+  )
   
   // 2. 十神相配分析
   const tenGodsAnalysis = analyzeTenGodsCompatibility(maleBazi, femaleBazi)
@@ -192,7 +198,11 @@ export function analyzeCompatibility(
 // 五行相配分析
 function analyzeFiveElementsCompatibility(
   maleBazi: BaziResult,
-  femaleBazi: BaziResult
+  femaleBazi: BaziResult,
+  maleIsCesarean: boolean = false,
+  femaleIsCesarean: boolean = false,
+  maleAddress?: string,
+  femaleAddress?: string
 ): FiveElementsAnalysis {
   const maleElements = calculateCompleteElements(
     Object.values(maleBazi.pillars),
@@ -203,6 +213,31 @@ function analyzeFiveElementsCompatibility(
     Object.values(femaleBazi.pillars),
     femaleBazi.dayMaster
   )
+  
+  // 剖腹产处理：调整五行力量
+  if (maleIsCesarean) {
+    const maleDayMasterElement = STEM_ELEMENT[maleBazi.dayMaster]
+    if (maleDayMasterElement && maleElements.weights[maleDayMasterElement]) {
+      maleElements.weights[maleDayMasterElement] = Math.max(0, maleElements.weights[maleDayMasterElement] - 0.05)
+      // 归一化处理
+      const sum = Object.values(maleElements.weights).reduce((a, b) => a + b, 0)
+      Object.keys(maleElements.weights).forEach(element => {
+        maleElements.weights[element] = maleElements.weights[element] / sum
+      })
+    }
+  }
+  
+  if (femaleIsCesarean) {
+    const femaleDayMasterElement = STEM_ELEMENT[femaleBazi.dayMaster]
+    if (femaleDayMasterElement && femaleElements.weights[femaleDayMasterElement]) {
+      femaleElements.weights[femaleDayMasterElement] = Math.max(0, femaleElements.weights[femaleDayMasterElement] - 0.05)
+      // 归一化处理
+      const sum = Object.values(femaleElements.weights).reduce((a, b) => a + b, 0)
+      Object.keys(femaleElements.weights).forEach(element => {
+        femaleElements.weights[element] = femaleElements.weights[element] / sum
+      })
+    }
+  }
   
   let score = 0
   const generateChains: string[] = []

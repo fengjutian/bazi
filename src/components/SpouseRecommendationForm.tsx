@@ -12,6 +12,8 @@ export default function SpouseRecommendationForm() {
   const [day, setDay] = useState('')
   const [hour, setHour] = useState('')
   const [gender, setGender] = useState<'male' | 'female'>('male')
+  const [isCesarean, setIsCesarean] = useState(false)
+  const [address, setAddress] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -59,7 +61,7 @@ export default function SpouseRecommendationForm() {
     await new Promise(resolve => setTimeout(resolve, 800))
     
     router.push(
-      `/spouse-recommendation?year=${year}&month=${month}&day=${day}&hour=${hour}&gender=${gender}`
+      `/spouse-recommendation?year=${year}&month=${month}&day=${day}&hour=${hour}&gender=${gender}&isCesarean=${isCesarean}&address=${encodeURIComponent(address)}`
     )
   }
 
@@ -178,6 +180,54 @@ export default function SpouseRecommendationForm() {
             />
             {errors.hour && <p className="text-red-500 text-xs mt-1">{errors.hour}</p>}
           </div>
+        </div>
+
+        {/* 剖腹产选择 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            🏥 是否剖腹产
+          </label>
+          <div className="flex space-x-4">
+            <button
+              type="button"
+              onClick={() => setIsCesarean(false)}
+              className={`flex-1 py-3 rounded-lg border-2 transition-all ${!
+                isCesarean
+                  ? 'bg-green-100 border-green-500 text-green-700'
+                  : 'bg-gray-100 border-gray-300 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              ❌ 否（自然分娩）
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsCesarean(true)}
+              className={`flex-1 py-3 rounded-lg border-2 transition-all ${!
+                isCesarean
+                  ? 'bg-gray-100 border-gray-300 text-gray-600 hover:bg-gray-200'
+                  : 'bg-red-100 border-red-500 text-red-700'
+              }`}
+            >
+              ✅ 是（剖腹产）
+            </button>
+          </div>
+        </div>
+
+        {/* 出生地址 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            🏠 出生地址（选填）
+          </label>
+          <input
+            type="text"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="如：北京、上海、广东"
+            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 border-gray-300"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            填写出生地址可更精准分析地域五行影响
+          </p>
         </div>
 
         {/* 操作按钮 */}

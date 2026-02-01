@@ -28,6 +28,8 @@ function ResultContent() {
     const month = searchParams.get('month')
     const day = searchParams.get('day')
     const hour = searchParams.get('hour')
+    const isCesarean = searchParams.get('isCesarean') === 'true'
+    const address = searchParams.get('address') || ''
     
     const birthYear = Number(year) || 1990
     const birthMonth = Number(month) || 1
@@ -35,7 +37,7 @@ function ResultContent() {
     const birthHour = Number(hour) || 12
 
     // 2️⃣ 八字计算
-    const baziResult = calcBazi(birthYear, birthMonth, birthDay, birthHour)
+    const baziResult = calcBazi(birthYear, birthMonth, birthDay, birthHour, isCesarean, address)
     const baziTenGods = calcAllTenGods(baziResult.dayMaster, [
       baziResult.pillars.year,
       baziResult.pillars.month,
@@ -49,7 +51,15 @@ function ResultContent() {
 
     // 4️⃣ 流年计算（只显示关键年份）
     const liuNianList = calcLiuNianFull(baziResult.dayMaster, birthYear, baziDaYunList[0].startAge, true)
-    const baziKeyLiuNianList = liuNianList.filter(ln => [20, 25, 30, 35, 40, 45, 50, 60, 70, 80].includes(ln.age))
+    // 生成连续的流年数据（每5年一个点）
+    let baziKeyLiuNianList = liuNianList.filter(ln => {
+      const age = ln.age
+      return age >= 20 && age <= 80 && age % 5 === 0
+    })
+    // 如果过滤结果为空，使用默认年龄点
+    if (baziKeyLiuNianList.length === 0) {
+      baziKeyLiuNianList = liuNianList.filter(ln => [20, 25, 30, 35, 40, 45, 50, 60, 70, 80].includes(ln.age))
+    }
 
     // 5️⃣ 综合运势
     const baziFortune = generateFortune(baziResult.dayMaster, [

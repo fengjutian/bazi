@@ -1,13 +1,13 @@
 // 配偶推荐算法
 // 基于八字命理学的配偶匹配原则
 
-import { calcBazi, BaziResult } from './bazi'
+import { calcBazi, BaziResult, STEM_ELEMENT } from './bazi'
 import { analyzeCompatibility } from './compatibility'
 
 // 配偶推荐结果接口
 export interface SpouseRecommendation {
   score: number // 匹配分数 (0-100)
-  compatibilityLevel: '极佳' | '良好' | '一般' | '较差' | '不推荐'
+  compatibilityLevel: '极佳' | '良好' | '一般' | '较差' | '不宜'
   recommendedSpouse: {
     birthYear: number
     birthMonth: number
@@ -29,7 +29,7 @@ export interface SpouseRecommendation {
 }
 
 // 根据日主推荐最佳配偶日主（结合五行平衡）
-function getBestSpouseDayMaster(userDayMaster: string, userElements: Record<string, number>): string[] {
+function getBestSpouseDayMaster(userDayMaster: string, userElements: Record<string, number>, isCesarean: boolean = false): string[] {
   // 日主相配原则：阴阳相配、五行互补
   const dayMasterMatches: Record<string, string[]> = {
     '甲': ['己', '庚', '辛'], // 阳木配阴土、阳金、阴金
@@ -49,8 +49,11 @@ function getBestSpouseDayMaster(userDayMaster: string, userElements: Record<stri
   const total = Object.values(userElements).reduce((a, b) => a + b, 0)
   const elementStrength = total > 0 ? userElements[dayMasterElement] / total : 0
   
+  // 剖腹产日主调整：剖腹产日主力量稍弱
+  const adjustedElementStrength = isCesarean ? Math.max(0, elementStrength - 0.05) : elementStrength
+  
   // 动态调整匹配策略
-  if (elementStrength > 0.3) {
+  if (adjustedElementStrength > 0.3) {
     // 日主过强：推荐克制或泄秀的日主
     const elementRecommendations: Record<string, string[]> = {
       '木': ['金', '火'], // 木强需金克火泄
@@ -72,7 +75,15 @@ function getBestSpouseDayMaster(userDayMaster: string, userElements: Record<stri
 }
 
 // 根据五行推荐最佳配偶五行分布（综合平衡）
-function getBestSpouseFiveElements(userElements: Record<string, number>): Record<string, number> {
+function getBestSpouseFiveElements(userElements: Record<string, number>, address?: string): Record<string, number> {
+  // 地域五行影响
+  if (address) {
+    const regionElements = getRegionFiveElements(address)
+    // 调整用户五行分布，结合地域影响
+    Object.keys(userElements).forEach(element => {
+      userElements[element] = userElements[element] * 0.8 + regionElements[element] * 0.2
+    })
+  }
   const total = Object.values(userElements).reduce((a, b) => a + b, 0)
   
   // 计算用户五行强弱
@@ -131,7 +142,7 @@ function getBestSpouseFiveElements(userElements: Record<string, number>): Record
   if (weakestElement.strength < 0.1) {
     // 最弱元素过弱：推荐生扶的元素
     const generateElements = Object.entries(elementGenerations)
-      .filter(([_, target]) => target === weakestElement.element)
+      .filter(([_, target]) => target.includes(weakestElement.element))
       .map(([element]) => element)
     
     generateElements.forEach(element => {
@@ -222,6 +233,37 @@ function getRecommendedBirthYears(userBirthYear: number, userGender: 'male' | 'f
   return uniqueYears.length > 0 ? uniqueYears : [userBirthYear - 2, userBirthYear, userBirthYear + 2]
 }
 
+// 地域五行分析函数
+function getRegionFiveElements(address: string): Record<string, number> {
+  // 简单的地域五行分析（可根据实际情况扩展）
+  const regionElements: Record<string, number> = { 木:0.2, 火:0.2, 土:0.2, 金:0.2, 水:0.2 }
+  
+  if (address.includes('东') || address.includes('上海') || address.includes('江苏') || address.includes('浙江')) {
+    regionElements.木 += 0.1
+    regionElements.金 -= 0.1
+  } else if (address.includes('南') || address.includes('广东') || address.includes('广西') || address.includes('海南')) {
+    regionElements.火 += 0.1
+    regionElements.水 -= 0.1
+  } else if (address.includes('西') || address.includes('陕西') || address.includes('甘肃') || address.includes('青海')) {
+    regionElements.金 += 0.1
+    regionElements.木 -= 0.1
+  } else if (address.includes('北') || address.includes('北京') || address.includes('天津') || address.includes('河北')) {
+    regionElements.水 += 0.1
+    regionElements.火 -= 0.1
+  } else if (address.includes('中') || address.includes('河南') || address.includes('湖北') || address.includes('湖南')) {
+    regionElements.土 += 0.1
+    regionElements.水 -= 0.1
+  }
+  
+  // 归一化处理
+  const sum = Object.values(regionElements).reduce((a, b) => a + b, 0)
+  Object.keys(regionElements).forEach(element => {
+    regionElements[element] = regionElements[element] / sum
+  })
+  
+  return regionElements
+}
+
 // 生成推荐的配偶八字
 function generateRecommendedSpouseBazi(
   userBazi: BaziResult,
@@ -269,21 +311,94 @@ function generateRecommendedSpouseBazi(
   return recommendations
 }
 
+// 输入验证函数
+function validateInput(year: number, month: number, day: number, hour: number): boolean {
+  if (year < 1900 || year > 2100) return false
+  if (month < 1 || month > 12) return false
+  if (day < 1 || day > 31) return false
+  if (hour < 0 || hour > 23) return false
+  
+  // 检查日期有效性
+  const date = new Date(year, month - 1, day)
+  if (date.getMonth() !== month - 1 || date.getDate() !== day) return false
+  
+  return true
+}
+
+// 生成默认推荐（当无法生成推荐时使用）
+function generateDefaultRecommendations(userBazi: BaziResult): SpouseRecommendation[] {
+  const recommendations: SpouseRecommendation[] = []
+  
+  // 生成几个默认的推荐
+  for (let i = 0; i < 3; i++) {
+    const year = parseInt(userBazi.birthDate.split('-')[0]) + i - 1
+    const month = parseInt(userBazi.birthDate.split('-')[1])
+    const day = parseInt(userBazi.birthDate.split('-')[2])
+    const hour = 12
+    
+    try {
+      const spouseBazi = calcBazi(year, month, day, hour)
+      const compatibility = analyzeCompatibility(userBazi, spouseBazi)
+      
+      recommendations.push({
+        score: compatibility.overallScore,
+        compatibilityLevel: compatibility.compatibilityLevel,
+        recommendedSpouse: {
+          birthYear: year,
+          birthMonth: month,
+          birthDay: day,
+          birthHour: hour,
+          pillars: Object.values(spouseBazi.pillars),
+          dayMaster: spouseBazi.dayMaster,
+          fiveElements: spouseBazi.fiveElements
+        },
+        analysis: {
+          fiveElements: compatibility.analysis.fiveElements.advice,
+          tenGods: compatibility.analysis.tenGods.advice,
+          dayMaster: compatibility.analysis.dayMaster.advice,
+          pillars: compatibility.analysis.pillars.advice,
+          overall: compatibility.analysis.overall
+        },
+        advantages: generateAdvantages(compatibility),
+        considerations: generateConsiderations(compatibility)
+      })
+    } catch (error) {
+      console.error('生成默认推荐错误:', error)
+    }
+  }
+  
+  return recommendations
+}
+
 // 主推荐函数
 export function recommendSpouse(
   userYear: number,
   userMonth: number,
   userDay: number,
   userHour: number,
-  userGender: 'male' | 'female'
+  userGender: 'male' | 'female',
+  isCesarean: boolean = false,
+  address?: string
 ): SpouseRecommendation[] {
   try {
+    // 输入验证
+    if (!validateInput(userYear, userMonth, userDay, userHour)) {
+      throw new Error('输入信息无效')
+    }
+    
     // 计算用户八字
     const userBazi = calcBazi(userYear, userMonth, userDay, userHour)
     
+    // 剖腹产特殊处理
+    if (isCesarean) {
+      console.log('剖腹产八字分析，需特殊处理')
+      // 剖腹产八字的十神分析需要调整权重
+      // 这里可以添加剖腹产特殊处理逻辑
+    }
+    
     // 获取推荐参数
-  const recommendedDayMasters = getBestSpouseDayMaster(userBazi.dayMaster, userBazi.fiveElements)
-  const recommendedYears = getRecommendedBirthYears(userYear, userGender)
+  const recommendedDayMasters = getBestSpouseDayMaster(userBazi.dayMaster, userBazi.fiveElements, isCesarean)
+    const recommendedYears = getRecommendedBirthYears(userYear, userGender)
     
     // 生成推荐的配偶八字
     const spouseBaziList = generateRecommendedSpouseBazi(userBazi, recommendedDayMasters, recommendedYears)
@@ -315,6 +430,11 @@ export function recommendSpouse(
         considerations: generateConsiderations(compatibility)
       }
     })
+    
+    // 如果推荐结果为空，生成默认推荐
+    if (recommendations.length === 0) {
+      return generateDefaultRecommendations(userBazi)
+    }
     
     // 按分数降序排序
     return recommendations.sort((a, b) => b.score - a.score)

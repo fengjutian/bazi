@@ -18,6 +18,8 @@ function SpouseRecommendationContent() {
     const day = Number(searchParams.get('day')) || 1
     const hour = Number(searchParams.get('hour')) || 12
     const gender = searchParams.get('gender') || 'male'
+    const isCesarean = searchParams.get('isCesarean') === 'true'
+    const address = searchParams.get('address') || ''
 
     try {
       // 计算用户八字
@@ -25,7 +27,7 @@ function SpouseRecommendationContent() {
       setUserBazi(bazi)
 
       // 获取配偶推荐
-      const spouseRecommendations = recommendSpouse(year, month, day, hour, gender as 'male' | 'female')
+      const spouseRecommendations = recommendSpouse(year, month, day, hour, gender as 'male' | 'female', isCesarean, address)
       setRecommendations(spouseRecommendations)
     } catch (error) {
       console.error('配偶推荐计算错误:', error)

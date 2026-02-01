@@ -228,6 +228,37 @@ function calculateCompleteElements(pillars: string[]): Record<string, number> {
   return fiveElements
 }
 
+// 地域五行分析函数
+function getRegionFiveElements(address: string): Record<string, number> {
+  // 简单的地域五行分析（可根据实际情况扩展）
+  const regionElements: Record<string, number> = { 木:0.2, 火:0.2, 土:0.2, 金:0.2, 水:0.2 }
+  
+  if (address.includes('东') || address.includes('上海') || address.includes('江苏') || address.includes('浙江')) {
+    regionElements.木 += 0.1
+    regionElements.金 -= 0.1
+  } else if (address.includes('南') || address.includes('广东') || address.includes('广西') || address.includes('海南')) {
+    regionElements.火 += 0.1
+    regionElements.水 -= 0.1
+  } else if (address.includes('西') || address.includes('陕西') || address.includes('甘肃') || address.includes('青海')) {
+    regionElements.金 += 0.1
+    regionElements.木 -= 0.1
+  } else if (address.includes('北') || address.includes('北京') || address.includes('天津') || address.includes('河北')) {
+    regionElements.水 += 0.1
+    regionElements.火 -= 0.1
+  } else if (address.includes('中') || address.includes('河南') || address.includes('湖北') || address.includes('湖南')) {
+    regionElements.土 += 0.1
+    regionElements.水 -= 0.1
+  }
+  
+  // 归一化处理
+  const sum = Object.values(regionElements).reduce((a, b) => a + b, 0)
+  Object.keys(regionElements).forEach(element => {
+    regionElements[element] = regionElements[element] / sum
+  })
+  
+  return regionElements
+}
+
 // ================================
 // 7️⃣ 对外主函数（带验证）
 // ================================
@@ -235,7 +266,9 @@ export function calcBazi(
   year: number,
   month: number,
   day: number,
-  hour: number
+  hour: number,
+  isCesarean: boolean = false,
+  address?: string
 ) {
   // 参数验证
   validateInput(year, month, day, hour)
@@ -260,7 +293,35 @@ export function calcBazi(
   ]
 
   // 完整的五行计算
-  const fiveElements = calculateCompleteElements(pillars)
+  let fiveElements = calculateCompleteElements(pillars)
+  
+  // 剖腹产处理：调整日主力量
+  if (isCesarean) {
+    // 剖腹产日主力量稍弱
+    const dayMasterElement = STEM_ELEMENT[dayStem]
+    if (dayMasterElement && fiveElements[dayMasterElement]) {
+      fiveElements[dayMasterElement] = Math.max(0, fiveElements[dayMasterElement] - 0.05)
+      // 归一化处理
+      const sum = Object.values(fiveElements).reduce((a, b) => a + b, 0)
+      Object.keys(fiveElements).forEach(element => {
+        fiveElements[element] = fiveElements[element] / sum
+      })
+    }
+  }
+  
+  // 地域五行处理
+  if (address) {
+    const regionElements = getRegionFiveElements(address)
+    // 调整五行分布（80%个人五行 + 20%地域五行）
+    Object.keys(fiveElements).forEach(element => {
+      fiveElements[element] = fiveElements[element] * 0.8 + regionElements[element] * 0.2
+    })
+    // 归一化处理
+    const sum = Object.values(fiveElements).reduce((a, b) => a + b, 0)
+    Object.keys(fiveElements).forEach(element => {
+      fiveElements[element] = fiveElements[element] / sum
+    })
+  }
 
   return {
     pillars: {
