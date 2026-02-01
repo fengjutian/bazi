@@ -295,32 +295,34 @@ export function calcBazi(
   // 完整的五行计算
   let fiveElements = calculateCompleteElements(pillars)
   
-  // 剖腹产处理：调整日主力量
-  if (isCesarean) {
-    // 剖腹产日主力量稍弱
-    const dayMasterElement = STEM_ELEMENT[dayStem]
-    if (dayMasterElement && fiveElements[dayMasterElement]) {
-      fiveElements[dayMasterElement] = Math.max(0, fiveElements[dayMasterElement] - 0.05)
-      // 归一化处理
-      const sum = Object.values(fiveElements).reduce((a, b) => a + b, 0)
+  // 剖腹产和地域处理只在需要时进行
+  if (isCesarean || address) {
+    // 先计算原始五行总和
+    const originalSum = Object.values(fiveElements).reduce((a, b) => a + b, 0)
+    
+    // 剖腹产处理：调整日主力量
+    if (isCesarean) {
+      const dayMasterElement = STEM_ELEMENT[dayStem]
+      if (dayMasterElement && fiveElements[dayMasterElement]) {
+        // 只调整相对比例，不改变绝对数值
+        const adjustment = fiveElements[dayMasterElement] * 0.05
+        fiveElements[dayMasterElement] = Math.max(0, fiveElements[dayMasterElement] - adjustment)
+        // 其他五行相应增加
+        const otherElements = Object.keys(fiveElements).filter(e => e !== dayMasterElement)
+        otherElements.forEach(element => {
+          fiveElements[element] += adjustment / otherElements.length
+        })
+      }
+    }
+    
+    // 地域五行处理
+    if (address) {
+      const regionElements = getRegionFiveElements(address)
+      // 调整五行分布（80%个人五行 + 20%地域五行）
       Object.keys(fiveElements).forEach(element => {
-        fiveElements[element] = fiveElements[element] / sum
+        fiveElements[element] = fiveElements[element] * 0.8 + regionElements[element] * originalSum * 0.2
       })
     }
-  }
-  
-  // 地域五行处理
-  if (address) {
-    const regionElements = getRegionFiveElements(address)
-    // 调整五行分布（80%个人五行 + 20%地域五行）
-    Object.keys(fiveElements).forEach(element => {
-      fiveElements[element] = fiveElements[element] * 0.8 + regionElements[element] * 0.2
-    })
-    // 归一化处理
-    const sum = Object.values(fiveElements).reduce((a, b) => a + b, 0)
-    Object.keys(fiveElements).forEach(element => {
-      fiveElements[element] = fiveElements[element] / sum
-    })
   }
 
   return {

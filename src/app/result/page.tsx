@@ -105,9 +105,9 @@ function ResultContent() {
   }
 
   // 7️⃣ 关键指标计算
-  const fiveElementsBalance = Object.values(result.fiveElements).reduce((sum, val) => sum + val, 0) / 5
-  const hasStrongElement = Object.values(result.fiveElements).some(val => val > 0.8)
-  const hasWeakElement = Object.values(result.fiveElements).some(val => val < 0.2)
+  const fiveElementsBalance = Object.values(result.fiveElements as Record<string, number>).reduce((sum, val) => sum + val, 0) / 5
+  const hasStrongElement = Object.values(result.fiveElements as Record<string, number>).some(val => val > 0.8)
+  const hasWeakElement = Object.values(result.fiveElements as Record<string, number>).some(val => val < 0.2)
 
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-8">
@@ -321,7 +321,7 @@ function ResultContent() {
             <div>
               <h3 className="font-semibold text-gray-700 mb-3">五行力量分布</h3>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                {Object.entries(result.fiveElements).map(([element, value]) => (
+                {Object.entries(result.fiveElements as Record<string, number>).map(([element, value]) => (
                   <div key={element} className="text-center">
                     <div className="font-medium text-gray-800">{element}</div>
                     <div className="text-2xl font-bold text-blue-600">{value.toFixed(1)}</div>
