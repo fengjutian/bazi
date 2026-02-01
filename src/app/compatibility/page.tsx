@@ -16,19 +16,23 @@ function CompatibilityContent() {
     const maleMonth = Number(searchParams.get('maleMonth')) || 1
     const maleDay = Number(searchParams.get('maleDay')) || 1
     const maleHour = Number(searchParams.get('maleHour')) || 12
+    const maleIsCesarean = searchParams.get('maleIsCesarean') === 'true'
+    const maleAddress = searchParams.get('maleAddress') || ''
     
     // 解析女方八字参数
     const femaleYear = Number(searchParams.get('femaleYear')) || 1990
     const femaleMonth = Number(searchParams.get('femaleMonth')) || 1
     const femaleDay = Number(searchParams.get('femaleDay')) || 1
     const femaleHour = Number(searchParams.get('femaleHour')) || 12
+    const femaleIsCesarean = searchParams.get('femaleIsCesarean') === 'true'
+    const femaleAddress = searchParams.get('femaleAddress') || ''
     
     // 计算双方八字
-    const maleBazi = calcBazi(maleYear, maleMonth, maleDay, maleHour)
-    const femaleBazi = calcBazi(femaleYear, femaleMonth, femaleDay, femaleHour)
+    const maleBazi = calcBazi(maleYear, maleMonth, maleDay, maleHour, maleIsCesarean, maleAddress)
+    const femaleBazi = calcBazi(femaleYear, femaleMonth, femaleDay, femaleHour, femaleIsCesarean, femaleAddress)
     
     // 分析八字相配度
-    const compatibilityResult = analyzeCompatibility(maleBazi, femaleBazi)
+    const compatibilityResult = analyzeCompatibility(maleBazi, femaleBazi, maleIsCesarean, femaleIsCesarean, maleAddress, femaleAddress)
     setResult(compatibilityResult)
   }, [searchParams])
   

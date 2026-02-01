@@ -12,12 +12,16 @@ export default function CompatibilityForm() {
   const [maleMonth, setMaleMonth] = useState('')
   const [maleDay, setMaleDay] = useState('')
   const [maleHour, setMaleHour] = useState('')
+  const [maleIsCesarean, setMaleIsCesarean] = useState(false)
+  const [maleAddress, setMaleAddress] = useState('')
 
   // 女方信息
   const [femaleYear, setFemaleYear] = useState('')
   const [femaleMonth, setFemaleMonth] = useState('')
   const [femaleDay, setFemaleDay] = useState('')
   const [femaleHour, setFemaleHour] = useState('')
+  const [femaleIsCesarean, setFemaleIsCesarean] = useState(false)
+  const [femaleAddress, setFemaleAddress] = useState('')
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -72,7 +76,7 @@ export default function CompatibilityForm() {
     await new Promise(resolve => setTimeout(resolve, 1000))
     
     router.push(
-      `/compatibility?maleYear=${maleYear}&maleMonth=${maleMonth}&maleDay=${maleDay}&maleHour=${maleHour}&femaleYear=${femaleYear}&femaleMonth=${femaleMonth}&femaleDay=${femaleDay}&femaleHour=${femaleHour}`
+      `/compatibility?maleYear=${maleYear}&maleMonth=${maleMonth}&maleDay=${maleDay}&maleHour=${maleHour}&maleIsCesarean=${maleIsCesarean}&maleAddress=${encodeURIComponent(maleAddress)}&femaleYear=${femaleYear}&femaleMonth=${femaleMonth}&femaleDay=${femaleDay}&femaleHour=${femaleHour}&femaleIsCesarean=${femaleIsCesarean}&femaleAddress=${encodeURIComponent(femaleAddress)}`
     )
   }
 
@@ -192,6 +196,50 @@ export default function CompatibilityForm() {
             )}
           </div>
         </div>
+        
+        {/* 剖腹产选择 */}
+        <div className="mt-6">
+          <label className="block text-sm font-medium text-blue-700 mb-2">🏥 是否剖腹产</label>
+          <div className="flex space-x-4">
+            <button
+              type="button"
+              onClick={() => setMaleIsCesarean(false)}
+              className={`flex-1 py-2 rounded-lg border-2 transition-all ${
+                !maleIsCesarean
+                  ? 'bg-green-100 border-green-500 text-green-700'
+                  : 'bg-gray-100 border-gray-300 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              ❌ 否（自然分娩）
+            </button>
+            <button
+              type="button"
+              onClick={() => setMaleIsCesarean(true)}
+              className={`flex-1 py-2 rounded-lg border-2 transition-all ${
+                !maleIsCesarean
+                  ? 'bg-gray-100 border-gray-300 text-gray-600 hover:bg-gray-200'
+                  : 'bg-red-100 border-red-500 text-red-700'
+              }`}
+            >
+              ✅ 是（剖腹产）
+            </button>
+          </div>
+        </div>
+        
+        {/* 出生地址 */}
+        <div className="mt-6">
+          <label className="block text-sm font-medium text-blue-700 mb-2">🏠 出生地址（选填）</label>
+          <input
+            type="text"
+            value={maleAddress}
+            onChange={(e) => setMaleAddress(e.target.value)}
+            placeholder="如：北京、上海、广东"
+            className="w-full px-3 py-2 rounded-lg border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            填写出生地址可更精准分析地域五行影响
+          </p>
+        </div>
       </div>
 
       {/* 女方信息 */}
@@ -287,6 +335,50 @@ export default function CompatibilityForm() {
               <p className="mt-1 text-xs text-red-600">⚠️ {errors.femaleHour}</p>
             )}
           </div>
+        </div>
+        
+        {/* 剖腹产选择 */}
+        <div className="mt-6">
+          <label className="block text-sm font-medium text-pink-700 mb-2">🏥 是否剖腹产</label>
+          <div className="flex space-x-4">
+            <button
+              type="button"
+              onClick={() => setFemaleIsCesarean(false)}
+              className={`flex-1 py-2 rounded-lg border-2 transition-all ${
+                !femaleIsCesarean
+                  ? 'bg-green-100 border-green-500 text-green-700'
+                  : 'bg-gray-100 border-gray-300 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              ❌ 否（自然分娩）
+            </button>
+            <button
+              type="button"
+              onClick={() => setFemaleIsCesarean(true)}
+              className={`flex-1 py-2 rounded-lg border-2 transition-all ${
+                !femaleIsCesarean
+                  ? 'bg-gray-100 border-gray-300 text-gray-600 hover:bg-gray-200'
+                  : 'bg-red-100 border-red-500 text-red-700'
+              }`}
+            >
+              ✅ 是（剖腹产）
+            </button>
+          </div>
+        </div>
+        
+        {/* 出生地址 */}
+        <div className="mt-6">
+          <label className="block text-sm font-medium text-pink-700 mb-2">🏠 出生地址（选填）</label>
+          <input
+            type="text"
+            value={femaleAddress}
+            onChange={(e) => setFemaleAddress(e.target.value)}
+            placeholder="如：北京、上海、广东"
+            className="w-full px-3 py-2 rounded-lg border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-500"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            填写出生地址可更精准分析地域五行影响
+          </p>
         </div>
       </div>
 
