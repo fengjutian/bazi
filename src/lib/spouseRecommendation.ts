@@ -28,8 +28,8 @@ export interface SpouseRecommendation {
   considerations: string[] // 注意事项
 }
 
-// 根据日主推荐最佳配偶日主
-function getBestSpouseDayMaster(userDayMaster: string): string[] {
+// 根据日主推荐最佳配偶日主（结合五行平衡）
+function getBestSpouseDayMaster(userDayMaster: string, userElements: Record<string, number>): string[] {
   // 日主相配原则：阴阳相配、五行互补
   const dayMasterMatches: Record<string, string[]> = {
     '甲': ['己', '庚', '辛'], // 阳木配阴土、阳金、阴金
@@ -44,60 +44,135 @@ function getBestSpouseDayMaster(userDayMaster: string): string[] {
     '癸': ['戊', '丙', '丁']  // 阴水配阳土、阳火、阴火
   }
   
+  // 日主强弱分析
+  const dayMasterElement = STEM_ELEMENT[userDayMaster as keyof typeof STEM_ELEMENT]
+  const total = Object.values(userElements).reduce((a, b) => a + b, 0)
+  const elementStrength = total > 0 ? userElements[dayMasterElement] / total : 0
+  
+  // 动态调整匹配策略
+  if (elementStrength > 0.3) {
+    // 日主过强：推荐克制或泄秀的日主
+    const elementRecommendations: Record<string, string[]> = {
+      '木': ['金', '火'], // 木强需金克火泄
+      '火': ['水', '土'], // 火强需水克土泄
+      '土': ['木', '金'], // 土强需木疏金泄
+      '金': ['火', '水'], // 金强需火克水泄
+      '水': ['土', '木']  // 水强需土克木泄
+    }
+    
+    const recommendedElements = elementRecommendations[dayMasterElement] || []
+    const recommendedDayMasters = Object.entries(STEM_ELEMENT)
+      .filter(([_, element]) => recommendedElements.includes(element))
+      .map(([dayMaster]) => dayMaster)
+    
+    return recommendedDayMasters.length > 0 ? recommendedDayMasters : dayMasterMatches[userDayMaster] || []
+  }
+  
   return dayMasterMatches[userDayMaster] || ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸']
 }
 
-// 根据五行推荐最佳配偶五行分布
+// 根据五行推荐最佳配偶五行分布（综合平衡）
 function getBestSpouseFiveElements(userElements: Record<string, number>): Record<string, number> {
   const total = Object.values(userElements).reduce((a, b) => a + b, 0)
   
   // 计算用户五行强弱
   const userStrengths = Object.entries(userElements).reduce((acc, [element, value]) => {
-    acc[element] = value / total
+    acc[element] = total > 0 ? value / total : 0
     return acc
   }, {} as Record<string, number>)
   
-  // 推荐互补的五行分布
-  const elementRecommendations: Record<string, string[]> = {
-    '木': ['土', '金'], // 木强需土金克制
-    '火': ['水', '金'], // 火强需水金克制
-    '土': ['木', '水'], // 土强需木水疏泄
-    '金': ['火', '木'], // 金强需火木克制
-    '水': ['土', '火']  // 水强需土火克制
+  // 五行相生相克关系
+  const elementGenerations: Record<string, string[]> = {
+    '木': ['火'], // 木生火
+    '火': ['土'], // 火生土
+    '土': ['金'], // 土生金
+    '金': ['水'], // 金生水
+    '水': ['木']  // 水生木
   }
   
-  // 找出用户最强的元素
-  const strongestElement = Object.entries(userStrengths).reduce((max, [element, strength]) => {
-    return strength > max.strength ? { element, strength } : max
-  }, { element: '', strength: 0 })
+  const elementOvercomes: Record<string, string[]> = {
+    '木': ['土'], // 木克土
+    '土': ['水'], // 土克水
+    '水': ['火'], // 水克火
+    '火': ['金'], // 火克金
+    '金': ['木']  // 金克木
+  }
   
-  // 推荐互补的五行
+  // 推荐互补的五行分布
   const recommendedElements: Record<string, number> = {
     '木': 0.2, '火': 0.2, '土': 0.2, '金': 0.2, '水': 0.2
   }
   
-  if (strongestElement.element && strongestElement.strength > 0.3) {
-    const complementaryElements = elementRecommendations[strongestElement.element]
-    complementaryElements?.forEach(element => {
-      recommendedElements[element] = 0.3 // 增加互补元素权重
+  // 找出用户最强和最弱的元素
+  const strongestElement = Object.entries(userStrengths).reduce((max, [element, strength]) => {
+    return strength > max.strength ? { element, strength } : max
+  }, { element: '', strength: 0 })
+  
+  const weakestElement = Object.entries(userStrengths).reduce((min, [element, strength]) => {
+    return strength < min.strength ? { element, strength } : min
+  }, { element: '', strength: 1 })
+  
+  // 动态调整推荐策略
+  if (strongestElement.strength > 0.3) {
+    // 最强元素过强：推荐克制或泄秀的元素
+    const overcomeElements = elementOvercomes[strongestElement.element] || []
+    overcomeElements.forEach(element => {
+      recommendedElements[element] = Math.min(0.35, recommendedElements[element] + 0.15)
     })
-    recommendedElements[strongestElement.element] = 0.1 // 减少过强元素权重
+    
+    const generateElements = elementGenerations[strongestElement.element] || []
+    generateElements.forEach(element => {
+      recommendedElements[element] = Math.min(0.3, recommendedElements[element] + 0.1)
+    })
+    
+    recommendedElements[strongestElement.element] = Math.max(0.05, recommendedElements[strongestElement.element] - 0.1)
   }
+  
+  if (weakestElement.strength < 0.1) {
+    // 最弱元素过弱：推荐生扶的元素
+    const generateElements = Object.entries(elementGenerations)
+      .filter(([_, target]) => target === weakestElement.element)
+      .map(([element]) => element)
+    
+    generateElements.forEach(element => {
+      recommendedElements[element] = Math.min(0.35, recommendedElements[element] + 0.15)
+    })
+    
+    recommendedElements[weakestElement.element] = Math.min(0.3, recommendedElements[weakestElement.element] + 0.1)
+  }
+  
+  // 归一化处理
+  const sum = Object.values(recommendedElements).reduce((a, b) => a + b, 0)
+  Object.keys(recommendedElements).forEach(element => {
+    recommendedElements[element] = recommendedElements[element] / sum
+  })
   
   return recommendedElements
 }
 
-// 生成推荐的出生年份范围（符合传统婚配观念）
+// 生成推荐的出生年份范围（符合传统婚配观念，结合年龄动态调整）
 function getRecommendedBirthYears(userBirthYear: number, userGender: 'male' | 'female'): number[] {
   const currentYear = new Date().getFullYear()
+  const userAge = currentYear - userBirthYear
   const minAge = 20
   const maxAge = 40
   
   const years: number[] = []
   
+  // 根据用户年龄动态调整推荐范围
+  let ageRange: { min: number, max: number }
+  
+  if (userAge < 25) {
+    ageRange = { min: -2, max: 3 } // 年轻用户：年龄差较小
+  } else if (userAge < 35) {
+    ageRange = { min: -3, max: 5 } // 中年用户：年龄差适中
+  } else {
+    ageRange = { min: -5, max: 8 } // 年长用户：年龄差较大
+  }
+  
   if (userGender === 'male') {
-    // 男性：推荐年龄相等或稍小的女性（传统观念：男大女小）
-    for (let ageDiff = 0; ageDiff <= 5; ageDiff++) {
+    // 男性：优先推荐年龄相等或稍小的女性（传统观念：男大女小）
+    for (let ageDiff = 0; ageDiff <= ageRange.max; ageDiff++) {
       const spouseYear = userBirthYear + ageDiff
       const spouseAge = currentYear - spouseYear
       
@@ -106,9 +181,9 @@ function getRecommendedBirthYears(userBirthYear: number, userGender: 'male' | 'f
       }
     }
     
-    // 如果没有合适的，放宽到±3岁范围
+    // 如果没有合适的，放宽到推荐范围
     if (years.length === 0) {
-      for (let ageDiff = -3; ageDiff <= 3; ageDiff++) {
+      for (let ageDiff = ageRange.min; ageDiff <= ageRange.max; ageDiff++) {
         const spouseYear = userBirthYear + ageDiff
         const spouseAge = currentYear - spouseYear
         
@@ -118,8 +193,8 @@ function getRecommendedBirthYears(userBirthYear: number, userGender: 'male' | 'f
       }
     }
   } else {
-    // 女性：推荐年龄相等或稍大的男性（传统观念：女小男大）
-    for (let ageDiff = -5; ageDiff <= 0; ageDiff++) {
+    // 女性：优先推荐年龄相等或稍大的男性（传统观念：女小男大）
+    for (let ageDiff = ageRange.min; ageDiff <= 0; ageDiff++) {
       const spouseYear = userBirthYear + ageDiff
       const spouseAge = currentYear - spouseYear
       
@@ -128,9 +203,9 @@ function getRecommendedBirthYears(userBirthYear: number, userGender: 'male' | 'f
       }
     }
     
-    // 如果没有合适的，放宽到±3岁范围
+    // 如果没有合适的，放宽到推荐范围
     if (years.length === 0) {
-      for (let ageDiff = -3; ageDiff <= 3; ageDiff++) {
+      for (let ageDiff = ageRange.min; ageDiff <= ageRange.max; ageDiff++) {
         const spouseYear = userBirthYear + ageDiff
         const spouseAge = currentYear - spouseYear
         
@@ -141,7 +216,10 @@ function getRecommendedBirthYears(userBirthYear: number, userGender: 'male' | 'f
     }
   }
   
-  return years.length > 0 ? years : [userBirthYear - 2, userBirthYear, userBirthYear + 2]
+  // 去重并排序
+  const uniqueYears = [...new Set(years)].sort((a, b) => a - b)
+  
+  return uniqueYears.length > 0 ? uniqueYears : [userBirthYear - 2, userBirthYear, userBirthYear + 2]
 }
 
 // 生成推荐的配偶八字
@@ -204,8 +282,8 @@ export function recommendSpouse(
     const userBazi = calcBazi(userYear, userMonth, userDay, userHour)
     
     // 获取推荐参数
-    const recommendedDayMasters = getBestSpouseDayMaster(userBazi.dayMaster)
-    const recommendedYears = getRecommendedBirthYears(userYear, userGender)
+  const recommendedDayMasters = getBestSpouseDayMaster(userBazi.dayMaster, userBazi.fiveElements)
+  const recommendedYears = getRecommendedBirthYears(userYear, userGender)
     
     // 生成推荐的配偶八字
     const spouseBaziList = generateRecommendedSpouseBazi(userBazi, recommendedDayMasters, recommendedYears)
